@@ -1,0 +1,13 @@
+name = "RLWorktable"
+uuid = "de4413af-3b26-4771-9f46-d4f98d06bcc3"
+authors = ["Rafael F. Katopodis <rafaelkatopodis@gmail.com> and contributors"]
+version = "0.1.0"
+
+[compat]
+julia = "1.5"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
