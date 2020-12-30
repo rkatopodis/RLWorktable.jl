@@ -3,6 +3,11 @@ uuid = "de4413af-3b26-4771-9f46-d4f98d06bcc3"
 authors = ["Rafael F. Katopodis <rafaelkatopodis@gmail.com> and contributors"]
 version = "0.1.0"
 
+[deps]
+ProgressMeter = "92933f4c-e287-5a05-a399-4b506db050ca"
+PyCall = "438e738f-606a-5dbb-bf0a-cddfbfd45ab0"
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
+
 [compat]
 julia = "1.5"
 
