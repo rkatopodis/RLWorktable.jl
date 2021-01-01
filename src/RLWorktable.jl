@@ -12,4 +12,8 @@ include("Simulations/Simulations.jl")
 using .Simulations
 export simulate_episode
 
+include("ExperienceBuffers/ExperienceBuffers.jl")
+using .ExperienceBuffers
+export DynamicExperienceBuffer, add!, reset!
+
 end
