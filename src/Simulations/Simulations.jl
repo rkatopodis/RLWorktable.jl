@@ -1,11 +1,11 @@
 module Simulations
 
 using ..Environments: AbstractEnvironment, step!, reset!, render, close
-using ..Agents: AbstractAgent, observe_first!, select_action, observe!, update!
+using ..Agents: AbstractAgent, select_action, observe!, update!
 
 using ProgressMeter: @showprogress
 
-export EnvironmentLoop, run, simulate_episode
+export EnvironmentLoop, simulate, simulate_episode
 
 struct EnvironmentLoop
     env::AbstractEnvironment
@@ -14,13 +14,13 @@ end
 
 EnvironmentLoop(; env, agent) = EnvironmentLoop(env, agent)
 
-function run(loop::EnvironmentLoop; episodes::Int)
+function simulate(loop::EnvironmentLoop; episodes::Int)
     episodes <= 0 && throw(
       DomainError(episodes, "Number of episodes must be greater than zero"))
 
     @showprogress for epi in 1:episodes
         reward, obs, done = reset!(loop.env)
-        observe_first!(loop.agent, obs)
+        observe!(loop.agent, obs)
 
         while !done
             action = select_action(loop.agent, obs)

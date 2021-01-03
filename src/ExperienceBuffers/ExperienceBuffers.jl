@@ -11,7 +11,7 @@ function MonteCarloExperiences end
 function TDExperiences end
 
 include("DynamicExperienceBuffer.jl")
-export DynamicExperienceBuffer
+export DynamicExperienceBuffer, DynamicBinaryBuffer
 
 struct StaticExperienceBuffer{O,A,R} <: AbstractExperienceBuffer
     size::Int

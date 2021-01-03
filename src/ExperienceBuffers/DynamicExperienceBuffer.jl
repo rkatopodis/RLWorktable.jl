@@ -1,13 +1,15 @@
-struct DynamicExperienceBuffer{O,A,R} <: AbstractExperienceBuffer
+struct DynamicExperienceBuffer{O,A} <: AbstractExperienceBuffer
     observations::Vector{O}
     actions::Vector{A}
-    rewards::Vector{R}
+    rewards::Vector{Float64}
     terminals::Vector{Bool}
 
-    DynamicExperienceBuffer{O,A,R}() where {O,A,R} = new(Vector{O}(), A[], R[], Bool[])
+    DynamicExperienceBuffer{O,A}() where {O,A} = new(Vector{O}(), A[], Float64[], Bool[])
 end
 
-function add!(buffer::DynamicExperienceBuffer{O,A,R}, observation::O) where {O,A,R}
+DynamicBinaryBuffer{A} = DynamicExperienceBuffer{Vector{Bool},A}
+
+function add!(buffer::DynamicExperienceBuffer{O,A}, observation::O) where {O,A}
     length(buffer.observations) != length(buffer.actions) && error(
       "Incomplete transition"
     )
@@ -17,7 +19,7 @@ function add!(buffer::DynamicExperienceBuffer{O,A,R}, observation::O) where {O,A
     nothing
 end
 
-function add!(buffer::DynamicExperienceBuffer{O,A,R}, action::A, reward::R, next_obs::O, terminal::Bool) where {O,A,R}
+function add!(buffer::DynamicExperienceBuffer{O,A}, action::A, reward::Float64, next_obs::O, terminal::Bool) where {O,A}
     length(buffer.observations) == length(buffer.actions) && error(
       "Incomplete transition"
     )
@@ -50,7 +52,7 @@ function Base.iterate(buffer::DynamicExperienceBuffer, state=1)
       state + 1)
 end
 
-function Base.iterate(rbuffer::Base.Iterators.Reverse{DynamicExperienceBuffer{O,A,R}}, state=length(rbuffer.itr.actions)) where {O,A,R}
+function Base.iterate(rbuffer::Base.Iterators.Reverse{DynamicExperienceBuffer{O,A}}, state=length(rbuffer.itr.actions)) where {O,A}
     state < 1 && return nothing
 
     return ((rbuffer.itr.observations[state],
@@ -62,4 +64,4 @@ function Base.iterate(rbuffer::Base.Iterators.Reverse{DynamicExperienceBuffer{O,
 end
 
 Base.length(buffer::DynamicExperienceBuffer) = length(buffer.actions)
-Base.eltype(buffer::DynamicExperienceBuffer{O,A,R}) where {O,A,R} = Tuple{O,A,R,O,Bool}
+Base.eltype(buffer::DynamicExperienceBuffer{O,A}) where {O,A} = Tuple{O,A,Float64,O,Bool}

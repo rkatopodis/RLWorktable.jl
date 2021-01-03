@@ -12,7 +12,8 @@ struct RandomAgent <: AbstractAgent
     end
 end
 
-observe_first!(::RandomAgent) = nothing
+# observe_first!(::RandomAgent) = nothing
 select_action(agent::RandomAgent, observation) = rand(agent.rng, agent.actions)
-observe!(::RandomAgent) = nothing
+observe!(::RandomAgent, observation) = nothing
+observe!(::RandomAgent, action, reward, observation, terminal) = nothing
 update!(::RandomAgent) = nothing
