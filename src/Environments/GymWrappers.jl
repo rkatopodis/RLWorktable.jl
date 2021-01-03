@@ -6,7 +6,7 @@ using PyCall
 
 export GymCartPoleV1
 
-const gym = PyNULL() # pyimport("gym")
+const gym = PyNULL()
 
 struct GymCartPoleV1 <: AbstractEnvironment
     env::PyObject

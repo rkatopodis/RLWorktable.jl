@@ -1,8 +1,10 @@
 module RLWorktable
 
-include("ExperienceBuffers/ExperienceBuffers.jl")
-using .ExperienceBuffers
-export DynamicExperienceBuffer, add!, reset!
+function reset! end
+
+include("Buffers/Buffers.jl")
+using .Buffers
+export DynamicBuffer, add!, reset!
 
 include("Environments/Environments.jl")
 using .Environments
@@ -14,6 +16,8 @@ export RandomAgent, MonteCarloDiscountedDiscriminatorAgent, select_action
 
 include("Simulations/Simulations.jl")
 using .Simulations
-export simulate_episode, EnvironmentLoop, simulate
+export simulate_episode, EnvironmentLoop, simulate, mean_total_reward, experiment
+
+include("Tools/Tools.jl")
 
 end

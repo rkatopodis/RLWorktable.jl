@@ -1,5 +1,7 @@
 module Agents
 
+import ..reset!
+
 export AbstractAgent, select_action, observe!, update!
 
 abstract type AbstractAgent end

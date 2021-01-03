@@ -1,19 +1,21 @@
-module ExperienceBuffers
+module Buffers
 
-export add!, reset!
+import ..reset!
 
-abstract type AbstractExperienceBuffer end
+export add!
+
+abstract type AbstractBuffer end
 
 function add! end
-function reset! end
+# function reset! end
 
 function MonteCarloExperiences end
 function TDExperiences end
 
-include("DynamicExperienceBuffer.jl")
-export DynamicExperienceBuffer, DynamicBinaryBuffer
+include("DynamicBuffer.jl")
+export DynamicBuffer, DynamicBinaryBuffer
 
-struct StaticExperienceBuffer{O,A,R} <: AbstractExperienceBuffer
+struct StaticBuffer{O,A,R} <: AbstractBuffer
     size::Int
     observations::Vector{O}
     actions::Vector{A}
@@ -21,7 +23,7 @@ struct StaticExperienceBuffer{O,A,R} <: AbstractExperienceBuffer
     next_obs::Int
     next_action::Int
 
-    function StaticExperienceBuffer{O,A,R}(size::Int) where {O,A,R}
+    function StaticBuffer{O,A,R}(size::Int) where {O,A,R}
         maxsize ≤ 0 && throw(DomainError(
             size, "Buffer size must be greater then zero."
         ))
@@ -37,11 +39,11 @@ struct StaticExperienceBuffer{O,A,R} <: AbstractExperienceBuffer
     end
 end
 
-function full(buffer::StaticExperienceBuffer)
+function full(buffer::StaticBuffer)
     (buffer.next_obs == buffer.next_action) && buffer.next_action > buffer.size
 end
 
-function add!(buffer::StaticExperienceBuffer{O,A,R}, obs::O) where {O,A,R}
+function add!(buffer::StaticBuffer{O,A,R}, obs::O) where {O,A,R}
     full(buffer) && error("Buffer is full") # TODO: Better exception
     buffer.next_obs != buffer.next_action && error("Incomplete transition")
 
@@ -51,7 +53,7 @@ function add!(buffer::StaticExperienceBuffer{O,A,R}, obs::O) where {O,A,R}
     nothing
 end
 
-function add!(buffer::StaticExperienceBuffer{O,A,R}, action::A, reward::R, obs::O) where {O,A,R}
+function add!(buffer::StaticBuffer{O,A,R}, action::A, reward::R, obs::O) where {O,A,R}
     full(buffer) && error("Buffer is full") # TODO: Better exception
     buffer.next_obs == buffer.next_action && error("Incomplete transition")
 
@@ -70,13 +72,13 @@ end
 
 # Returns (obs, action, reward, next_obs, next_action, done) pairs. If a transition
 # leads to a terminal state, next_obs will be zero(O) and next_action, zero(A)
-function Base.iterate(buffer::StaticExperienceBuffer{O,A,R}, state=1) where {O,A,R}
+function Base.iterate(buffer::StaticBuffer{O,A,R}, state=1) where {O,A,R}
     state == buffer.next_obs && return nothing
 
     
 end
 
-struct EpisodicBuffer{O,A,R} <: AbstractExperienceBuffer
+struct EpisodicBuffer{O,A,R} <: AbstractBuffer
     maxsize::Int
     episodes::Int
     observations::AbstractVector{O} # In the context of weightless neural networks,
