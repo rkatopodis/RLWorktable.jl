@@ -14,4 +14,6 @@ function close end # Close render window. Gym-specific
 include("GymWrappers.jl")
 using .GymWrappers: GymCartPoleV1
 
+include("CartPole.jl")
+export CartPole, CartPoleV1
 end

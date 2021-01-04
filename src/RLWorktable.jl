@@ -8,11 +8,11 @@ export DynamicBuffer, add!, reset!
 
 include("Environments/Environments.jl")
 using .Environments
-export GymCartPoleV1
+export GymCartPoleV1, CartPoleV1
 
 include("Agents/Agents.jl")
 using .Agents
-export RandomAgent, MonteCarloDiscountedDiscriminatorAgent, select_action
+export RandomAgent, MonteCarloDiscountedDiscriminatorAgent, SARSADiscountedDiscriminatorAgent
 
 include("Simulations/Simulations.jl")
 using .Simulations
