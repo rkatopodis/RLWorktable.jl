@@ -20,4 +20,7 @@ export RandomAgent
 include("WNN/MonteCarloDiscountedDiscriminatorAgent.jl")
 export MonteCarloDiscountedDiscriminatorAgent
 
+include("WNN/SARSADiscountedDiscriminatorAgent.jl")
+export SARSADiscountedDiscriminatorAgent
+
 end

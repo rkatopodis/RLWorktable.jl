@@ -6,11 +6,12 @@ using StatsBase: sample, pweights
 
 using ..Buffers: DynamicBinaryBuffer, add!
 
-mutable struct MonteCarloDiscountedDiscriminatorAgent{A <: Real,E <: AbstractEncoder} <: AbstractAgent
+struct MonteCarloDiscountedDiscriminatorAgent{A <: Real,E <: AbstractEncoder} <: AbstractAgent
     actions::UnitRange{A}
     n::Int
     size::Int
     discount::Float64
+    γ::Float64
     ϵ::Float64
     episodes::Int
     encoder::E
@@ -20,7 +21,7 @@ mutable struct MonteCarloDiscountedDiscriminatorAgent{A <: Real,E <: AbstractEnc
 
     # TODO: Validate actions and encoder and ϵ
     # TODO: Do I need the size if the encoder is given?
-    function MonteCarloDiscountedDiscriminatorAgent{A,E}(actions, n, size, discount, ϵ, episodes, encoder::E; seed=Union{Nothing,Int} = nothing) where {A <: Real,E <: AbstractEncoder}
+    function MonteCarloDiscountedDiscriminatorAgent{A,E}(actions, n, size, discount, γ, ϵ, episodes, encoder::E; seed=Union{Nothing,Int} = nothing) where {A <: Real,E <: AbstractEncoder}
         !isnothing(seed) && seed < 0 && throw(DomainError(seed, "Seed must be non-negative"))
         rng = isnothing(seed) ? MersenneTwister() : MersenneTwister(seed)
 
@@ -32,12 +33,12 @@ mutable struct MonteCarloDiscountedDiscriminatorAgent{A <: Real,E <: AbstractEnc
         Q̂ = Dict(a => RegressionDiscriminator(size, n; γ=discount) for a in actions)
         buffer = DynamicBinaryBuffer{A}()
 
-        new(actions, n, size, discount, ϵ, episodes, encoder, Q̂, buffer, rng)
+        new(actions, n, size, discount, γ, ϵ, episodes, encoder, Q̂, buffer, rng)
     end
 end
 
-function MonteCarloDiscountedDiscriminatorAgent(actions::UnitRange{A}, n, size, discount, ϵ, episodes, encoder::E; seed=nothing) where {A <: Real,E <: AbstractEncoder}
-    MonteCarloDiscountedDiscriminatorAgent{A,E}(actions, n, size, discount, ϵ, episodes, encoder; seed)
+function MonteCarloDiscountedDiscriminatorAgent(actions::UnitRange{A}, n, size, discount, γ, ϵ, episodes, encoder::E; seed=nothing) where {A <: Real,E <: AbstractEncoder}
+    MonteCarloDiscountedDiscriminatorAgent{A,E}(actions, n, size, discount, γ, ϵ, episodes, encoder; seed)
 end
 
 
@@ -80,7 +81,7 @@ function update!(agent::MonteCarloDiscountedDiscriminatorAgent)
         target = 0.0
         for (obs, action, reward, next_obs, done) in Iterators.reverse(agent.buffer)
             done && (target = 0.0)
-            target += reward
+            target = reward + agent.γ * target
             train!(agent.Q̂[action], obs, target)
         end
 
