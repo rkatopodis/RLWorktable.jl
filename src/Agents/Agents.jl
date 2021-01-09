@@ -23,4 +23,7 @@ export MonteCarloDiscountedDiscriminatorAgent
 include("WNN/SARSADiscountedDiscriminatorAgent.jl")
 export SARSADiscountedDiscriminatorAgent
 
+include("WNN/QLearningDiscountedDiscriminatorAgent.jl")
+export QLearningDiscountedDiscriminatorAgent
+
 end

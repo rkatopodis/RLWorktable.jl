@@ -12,7 +12,10 @@ export GymCartPoleV1, CartPoleV1
 
 include("Agents/Agents.jl")
 using .Agents
-export RandomAgent, MonteCarloDiscountedDiscriminatorAgent, SARSADiscountedDiscriminatorAgent
+export RandomAgent,
+  MonteCarloDiscountedDiscriminatorAgent,
+  SARSADiscountedDiscriminatorAgent,
+  QLearningDiscountedDiscriminatorAgent
 
 include("Simulations/Simulations.jl")
 using .Simulations
