@@ -2,10 +2,10 @@ using Ramnet.Encoders
 using Ramnet
 
 using Random
-using StatsBase: sample, pweights
 
 using ..Buffers: DynamicBinaryBuffer, add!
 
+# TODO: Use MultiStepDynamicBuffer
 struct MonteCarloDiscountedDiscriminatorAgent{A <: Real,E <: AbstractEncoder} <: AbstractAgent
     actions::UnitRange{A}
     n::Int
@@ -41,7 +41,7 @@ function MonteCarloDiscountedDiscriminatorAgent(actions::UnitRange{A}, n, size, 
     MonteCarloDiscountedDiscriminatorAgent{A,E}(actions, n, size, discount, γ, ϵ, episodes, encoder; seed)
 end
 
-
+# TODO: Make use of top-level select_action!
 function select_action(agent::MonteCarloDiscountedDiscriminatorAgent{A,E}, observation) where {A <: Real,E <: AbstractEncoder}
     # Random action taken with ϵ probability
     rand(agent.rng) < agent.ϵ && return rand(agent.rng, agent.actions)

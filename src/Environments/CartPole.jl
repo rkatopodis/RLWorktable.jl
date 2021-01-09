@@ -1,6 +1,7 @@
 using Random
 using Distributions
 
+# TODO: Weird stuff happens when using this environment with TD methods. Check.
 mutable struct CartPole <: AbstractEnvironment
     max_steps::Int
     steps::Int

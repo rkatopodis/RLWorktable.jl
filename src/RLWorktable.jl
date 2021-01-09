@@ -15,6 +15,7 @@ using .Agents
 export RandomAgent,
   MonteCarloDiscountedDiscriminatorAgent,
   SARSADiscountedDiscriminatorAgent,
+  ExpectedSARSADiscriminatorAgent,
   QLearningDiscountedDiscriminatorAgent
 
 include("Simulations/Simulations.jl")

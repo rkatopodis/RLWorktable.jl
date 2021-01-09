@@ -3,7 +3,8 @@ using Ramnet
 
 using ..Buffers: MultiStepDynamicBuffer, add!
 
-mutable struct QLearningDiscountedDiscriminatorAgent{O,A <: Real,E <: AbstractEncoder} <: AbstractAgent
+mutable struct ExpectedSARSADiscriminatorAgent{O,A <: Real,E <: AbstractEncoder} <: AbstractAgent
+    steps::Int
     actions::UnitRange{A}
     n::Int
     size::Int
@@ -18,7 +19,7 @@ mutable struct QLearningDiscountedDiscriminatorAgent{O,A <: Real,E <: AbstractEn
     action::Union{Nothing,A}
     rng::MersenneTwister
 
-    function QLearningDiscountedDiscriminatorAgent{O,A,E}(actions, n, size, regressor_discount, rl_discount, ϵ, encoder::E; seed::Union{Nothing,Int}=nothing) where {O,A <: Real,E <: AbstractEncoder}
+    function ExpectedSARSADiscriminatorAgent{O,A,E}(steps, actions, n, size, regressor_discount, rl_discount, ϵ, encoder::E; seed::Union{Nothing,Int}=nothing) where {O,A <: Real,E <: AbstractEncoder}
         !isnothing(seed) && seed < 0 && throw(DomainError(seed, "Seed must be non-negative"))
         rng = isnothing(seed) ? MersenneTwister() : MersenneTwister(seed)
 
@@ -30,6 +31,7 @@ mutable struct QLearningDiscountedDiscriminatorAgent{O,A <: Real,E <: AbstractEn
         buffer = MultiStepDynamicBuffer{O,A}()
 
         new(
+            steps,
             actions,
             n,
             size,
@@ -47,14 +49,14 @@ mutable struct QLearningDiscountedDiscriminatorAgent{O,A <: Real,E <: AbstractEn
     end
 end
 
-function observe!(agent::QLearningDiscountedDiscriminatorAgent{O,A,E}, observation::O) where {O,A <: Real,E <: AbstractEncoder}
+function observe!(agent::ExpectedSARSADiscriminatorAgent{O,A,E}, observation::O) where {O,A <: Real,E <: AbstractEncoder}
     agent.observation = observation
     agent.done = false
     
     nothing
 end
 
-function observe!(agent::QLearningDiscountedDiscriminatorAgent{O,A,E}, action::A, reward::Float64, observation::O, done::Bool) where {O,A <: Real,E <: AbstractEncoder}
+function observe!(agent::ExpectedSARSADiscriminatorAgent{O,A,E}, action::A, reward::Float64, observation::O, done::Bool) where {O,A <: Real,E <: AbstractEncoder}
     add!(agent.buffer, agent.observation, agent.action, reward)
 
     agent.observation = observation
@@ -63,22 +65,38 @@ function observe!(agent::QLearningDiscountedDiscriminatorAgent{O,A,E}, action::A
     nothing
 end
 
-function update!(agent::QLearningDiscountedDiscriminatorAgent)
-    values = similar(agent.actions, Float64)
-    q_max = q_values!(agent, agent.observation, values)
+function update!(agent::ExpectedSARSADiscriminatorAgent)
+    if agent.done
+        G = 0.0
+        for transition in Iterators.reverse(agent.buffer)
+            G = transition.reward + agent.rl_discount * G
+            train!(
+                agent.Q̂[transition.action],
+                encode(agent.encoder, transition.observation),
+                G
+            )
+        end
 
-    t = popfirst!(agent.buffer)
+        reset!(agent.buffer)
+    elseif length(agent.buffer) == agent.steps
+        G = expected_q_value(agent, agent.observation)
+        for transition in Iterators.reverse(agent.buffer)
+            G = transition.reward + agent.rl_discount * G
+        end
 
-    train!(
-        agent.Q̂[t.action],
-        encode(agent.encoder, t.observation),
-        t.reward + agent.rl_discount * q_max
-    )
+        t = popfirst!(agent.buffer)
+
+        train!(
+            agent.Q̂[t.action],
+            encode(agent.encoder, t.observation),
+            G
+        )
+    end
 
     nothing
 end
 
-function Agents.reset!(agent::QLearningDiscountedDiscriminatorAgent)
+function Agents.reset!(agent::ExpectedSARSADiscriminatorAgent)
     for action in agent.actions
         agent.Q̂[action] = RegressionDiscriminator(agent.size, agent.n; γ=agent.regressor_discount)
     end

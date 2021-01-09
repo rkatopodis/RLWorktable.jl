@@ -49,39 +49,9 @@ mutable struct SARSADiscountedDiscriminatorAgent{O,A <: Real,E <: AbstractEncode
     end
 end
 
-# TODO: This is the same as the MC select_action. Consolidate.
-function _select_action(agent::SARSADiscountedDiscriminatorAgent, observation)
-    # Random action taken with ϵ probability
-    rand(agent.rng) < agent.ϵ && return rand(agent.rng, agent.actions)
-
-    # TODO: I could avoid creating these temporary arrays here
-    # Selecting action that maximizes Q̂, with ties broken randomly
-    q_values = similar(agent.actions, Float64)
-    q_max = typemin(Float64)
-    q = 0.0
-    encoded_obs = encode(agent.encoder, observation) # TODO: Don't have to create a bunch of temp arrays here
-    for (i, action) in Iterators.zip(eachindex(q_values), agent.actions)
-        q = predict(agent.Q̂[action], encoded_obs)
-        q_values[i] = q
-        q_max = q > q_max ? q : q_max
-    end
-
-    # println("Q-values: $q_values")
-    action_probs = q_values .== q_max
-
-    return sample(agent.rng, agent.actions, pweights(action_probs))
-end
-
-function select_action(agent::SARSADiscountedDiscriminatorAgent, observation)
-    # return agent.action
-    agent.action = _select_action(agent, observation)
-    return agent.action
-end
-
 function observe!(agent::SARSADiscountedDiscriminatorAgent{O,A,E}, observation::O) where {O,A <: Real,E <: AbstractEncoder}
     agent.observation = observation
     agent.done = false
-    # agent.action = _select_action(agent, observation)
     
     nothing
 end
@@ -92,18 +62,12 @@ function observe!(agent::SARSADiscountedDiscriminatorAgent{O,A,E}, action::A, re
     agent.observation = observation
     agent.done = done
 
-    # if !done
-    #     agent.action = _select_action(agent, observation)
-    # end
-
     nothing
 end
 
 function update!(agent::SARSADiscountedDiscriminatorAgent)
     if agent.done
-        # println("Monte Carlo update")
         G = 0.0
-        # println("$(length(agent.buffer)) transitions")
         for transition in Iterators.reverse(agent.buffer)
             G = transition.reward + agent.rl_discount * G
             train!(
@@ -115,8 +79,7 @@ function update!(agent::SARSADiscountedDiscriminatorAgent)
 
         reset!(agent.buffer)
     elseif length(agent.buffer) == agent.steps
-        # println("Bootstrapping update")
-        next_action = _select_action(agent, agent.observation)
+        next_action = select_action!(agent, agent.observation)
         G = predict(agent.Q̂[next_action], encode(agent.encoder, agent.observation))
         for transition in Iterators.reverse(agent.buffer)
             G = transition.reward + agent.rl_discount * G
@@ -129,28 +92,7 @@ function update!(agent::SARSADiscountedDiscriminatorAgent)
             encode(agent.encoder, t.observation),
             G
         )
-    else
-        # println("No update!")
     end
-
-    # for transition in agent.buffer
-    #     if agent.done
-    #         train!(
-    #             agent.Q̂[transition.action],
-    #             encode(agent.encoder, transition.observation),
-    #             transition.reward
-    #         )
-    #     else
-    #         train!(
-    #             agent.Q̂[transition.action],
-    #             encode(agent.encoder, transition.observation),
-    #             transition.reward + agent.rl_discount * predict(
-    #                 agent.Q̂[agent.past_action],
-    #                 encode(agent.encoder, agent.past_obs)
-    #             )
-    #         )
-    #     end
-    # end
 
     nothing
 end
@@ -159,9 +101,6 @@ function Agents.reset!(agent::SARSADiscountedDiscriminatorAgent)
     for action in agent.actions
         agent.Q̂[action] = RegressionDiscriminator(agent.size, agent.n; γ=agent.regressor_discount)
     end
-
-    # agent.past_obs = nothing
-    # agent.past_action = nothing
 
     nothing
 end

@@ -1,5 +1,7 @@
 module Buffers
 
+# TODO: Static buffers!!!
+
 import ..reset!
 
 export add!

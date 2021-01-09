@@ -3,7 +3,7 @@ module Simulations
 import ..reset!
 
 using ..Environments: AbstractEnvironment, step!, render, close
-using ..Agents: AbstractAgent, select_action, observe!, update!
+using ..Agents: AbstractAgent, select_action!, observe!, update!
 
 using ProgressMeter: @showprogress
 using StatsBase: mean
@@ -27,7 +27,7 @@ function simulate!(loop::EnvironmentLoop, total_rewards::AbstractVector{Float64}
 
         total_reward = reward
         while !done
-            action = select_action(loop.agent, obs)
+            action = select_action!(loop.agent, obs)
             reward, obs, done = step!(loop.env, action)
 
             total_reward += reward
@@ -54,7 +54,7 @@ function simulate_episode(env::AbstractEnvironment, agent::AbstractAgent; viz=fa
 
     total_reward = zero(Float64)
     while !done
-        action = select_action(agent, obs)
+        action = select_action!(agent, obs; ϵ=0.0)
         reward, obs, done = step!(env, action)
 
         total_reward += reward
