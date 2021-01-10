@@ -73,5 +73,11 @@ function step!(env::CartPole, action::Int)
                theta > theta_threshold_radians ||
                env.steps ≥ env.max_steps
 
-    return 1.0, env.state, env.done 
+    # If no copy is made, all transitions in a buffer are going to end up
+    # pointing to the same state.
+    # The copying might be unecessary if I were to use StructArrays in the
+    # buffer (???)
+    # TODO: Think of a more elegant and/or efficient solution for the problem
+    #       described above.
+    return 1.0, env.state[:], env.done 
 end

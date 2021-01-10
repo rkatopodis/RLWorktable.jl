@@ -58,7 +58,7 @@ function simulate_episode(env::AbstractEnvironment, agent::AbstractAgent; viz=fa
         reward, obs, done = step!(env, action)
 
         total_reward += reward
-        viz && (render(env); sleep(1 / 60))
+        viz && (render(env); sleep(1 / 50))
     end
 
     viz && close(env)
