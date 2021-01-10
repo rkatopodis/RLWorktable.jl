@@ -41,30 +41,9 @@ function expected_q_value(agent::A, observation) where {A <: AbstractAgent}
     return mean(values, pweights((values .== q_max) .+ agent.ϵ))
 end
 
-# function select_action!(agent::A, observation; ϵ=agent.ϵ) where {A <: AbstractAgent}
-#     # TODO: I could avoid creating these temporary arrays here
-#     # Selecting action that maximizes Q̂, with ties broken randomly
-#     q_values = similar(agent.actions, Float64)
-#     q_max = typemin(Float64)
-#     q = 0.0
-#     encoded_obs = encode(agent.encoder, observation) # TODO: Don't have to create a bunch of temp arrays here
-#     for (i, action) in Iterators.zip(eachindex(q_values), agent.actions)
-#         q = predict(agent.Q̂[action], encoded_obs)
-#         q_values[i] = q
-#         q_max = q > q_max ? q : q_max
-#     end
-
-#     action_probs = q_values .== q_max
-
-#     if rand(agent.rng) < ϵ # Random action taken with ϵ probability
-#         agent.action = rand(agent.rng, agent.actions)
-#     else
-#         agent.action = sample(agent.rng, agent.actions, pweights(action_probs))
-#     end
-
-#     return agent.action, q_max
-# end
-
+# TODO: Make this a function of the Q-value approximation, not the agent.
+#       (Define somewhere else a DiscreteQDiscriminator. Maybe in a Approximators
+#        module)
 function select_action!(agent::A, observation; ϵ=agent.ϵ) where {A <: AbstractAgent}
     # TODO: I could avoid creating these temporary arrays here
     values = similar(agent.actions, Float64)
