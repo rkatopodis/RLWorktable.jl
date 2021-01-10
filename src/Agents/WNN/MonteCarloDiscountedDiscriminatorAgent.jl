@@ -25,7 +25,7 @@ mutable struct MonteCarloDiscountedDiscriminatorAgent{O,A <: Real,E <: AbstractE
 
     # TODO: Validate actions and encoder and ϵ
     # TODO: Do I need the size if the encoder is given?
-    function MonteCarloDiscountedDiscriminatorAgent{O,A,E}(actions, n, size, regressor_discount, γ, ϵ, encoder::E; seed=Union{Nothing,Int} = nothing) where {O,A <: Real,E <: AbstractEncoder}
+    function MonteCarloDiscountedDiscriminatorAgent{O,A,E}(actions, n, size, regressor_discount, γ, ϵ, encoder::E; seed::Union{Nothing,Int}=nothing) where {O,A <: Real,E <: AbstractEncoder}
         !isnothing(seed) && seed < 0 && throw(DomainError(seed, "Seed must be non-negative"))
         rng = isnothing(seed) ? MersenneTwister() : MersenneTwister(seed)
 
@@ -79,7 +79,7 @@ end
 
 function Agents.reset!(agent::MonteCarloDiscountedDiscriminatorAgent)
     for action in agent.actions
-        agent.Q̂[action] = RegressionDiscriminator(agent.size, agent.n; γ=agent.discount)
+        agent.Q̂[action] = RegressionDiscriminator(agent.size, agent.n; γ=agent.regressor_discount)
     end
 
     reset!(agent.buffer)
