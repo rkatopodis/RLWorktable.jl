@@ -1,10 +1,10 @@
 using Random
 
-struct RandomAgent <: AbstractAgent
+struct RandomAgent{O <: AbstractVector,A <: Real} <: AbstractAgent{O,A}
     actions::AbstractUnitRange
     rng::AbstractRNG
 
-    function RandomAgent(actions; seed::Union{Nothing,Int}=nothing)
+    function RandomAgent{O,A}(actions; seed::Union{Nothing,Int}=nothing) where {O <: AbstractVector,A <: Real}
         !isnothing(seed) && seed < 0 && throw(DomainError(seed, "Seed must be non-negative"))
         rng = isnothing(seed) ? MersenneTwister() : MersenneTwister(seed)
 

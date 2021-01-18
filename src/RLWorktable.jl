@@ -8,7 +8,7 @@ export DynamicBuffer, add!, reset!
 
 include("Environments/Environments.jl")
 using .Environments
-export GymCartPoleV1, CartPoleV1
+export GymCartPoleV1, GymMountainCarDiscrete, CartPoleV1
 
 include("Agents/Agents.jl")
 using .Agents

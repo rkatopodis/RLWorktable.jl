@@ -8,7 +8,7 @@ export AbstractAgent, select_action!, observe!, update!
 
 # TODO: Make this type parametric. All agents should know the types of its observations,
 #       actions and encoder
-abstract type AbstractAgent end
+abstract type AbstractAgent{O <: AbstractVector,A <: Real} end
 
 # I can make use of multiple dispatch here so that both observe_first! and observe!
 # are called observe!. The "observe_first!" equivalent only takes a observation while
@@ -18,7 +18,7 @@ abstract type AbstractAgent end
 function observe! end
 function update! end
 
-function q_values!(agent::A, observation, dest::AbstractVector{Float64}) where {A <: AbstractAgent}
+function q_values!(agent::G, observation::O, dest::AbstractVector{Float64}) where {O <: AbstractVector,A <: Real,G <: AbstractAgent{O,A}}
     q_max = typemin(Float64)
     q = 0.0
     encoded_obs = encode(agent.encoder, observation) # TODO: Don't have to create a bunch of temp arrays here
@@ -34,7 +34,7 @@ end
 # TODO: Make a version that takes a destination vector 
 # TODO: This implementation is wrong. It must take into account the epsilon prob.
 #       Refer to the Alberta MOOC exercise.
-function expected_q_value(agent::A, observation) where {A <: AbstractAgent}
+function expected_q_value(agent::G, observation::O) where {O <: AbstractVector,A <: Real,G <: AbstractAgent{O,A}}
     values = similar(agent.actions, Float64)
     q_max = q_values!(agent, observation, values)
 
@@ -44,7 +44,7 @@ end
 # TODO: Make this a function of the Q-value approximation, not the agent.
 #       (Define somewhere else a DiscreteQDiscriminator. Maybe in a Approximators
 #        module)
-function select_action!(agent::A, observation; ϵ=agent.ϵ) where {A <: AbstractAgent}
+function select_action!(agent::G, observation::O; ϵ::Float64=agent.ϵ) where {O <: AbstractVector,A <: Real,G <: AbstractAgent{O,A}}
     # TODO: I could avoid creating these temporary arrays here
     values = similar(agent.actions, Float64)
     q_max = q_values!(agent, observation, values)
@@ -56,7 +56,7 @@ function select_action!(agent::A, observation; ϵ=agent.ϵ) where {A <: Abstract
         agent.action = sample(agent.rng, agent.actions, pweights(values .== q_max))
     end
 
-    return agent.action
+    return agent.action::A
 end
 
 include("RandomAgent.jl")

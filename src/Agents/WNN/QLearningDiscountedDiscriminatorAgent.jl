@@ -3,7 +3,7 @@ using Ramnet
 
 using ..Buffers: MultiStepDynamicBuffer, add!
 
-mutable struct QLearningDiscountedDiscriminatorAgent{O,A <: Real,E <: AbstractEncoder} <: AbstractAgent
+mutable struct QLearningDiscountedDiscriminatorAgent{O <: AbstractVector,A <: Real,E <: AbstractEncoder} <: AbstractAgent{O,A}
     actions::UnitRange{A}
     n::Int
     size::Int
@@ -18,7 +18,7 @@ mutable struct QLearningDiscountedDiscriminatorAgent{O,A <: Real,E <: AbstractEn
     action::Union{Nothing,A}
     rng::MersenneTwister
 
-    function QLearningDiscountedDiscriminatorAgent{O,A,E}(actions, n, size, regressor_discount, rl_discount, ϵ, encoder::E; seed::Union{Nothing,Int}=nothing) where {O,A <: Real,E <: AbstractEncoder}
+    function QLearningDiscountedDiscriminatorAgent{O,A,E}(actions, n, size, regressor_discount, rl_discount, ϵ, encoder::E; seed::Union{Nothing,Int}=nothing) where {O <: AbstractVector,A <: Real,E <: AbstractEncoder}
         !isnothing(seed) && seed < 0 && throw(DomainError(seed, "Seed must be non-negative"))
         rng = isnothing(seed) ? MersenneTwister() : MersenneTwister(seed)
 
@@ -47,14 +47,14 @@ mutable struct QLearningDiscountedDiscriminatorAgent{O,A <: Real,E <: AbstractEn
     end
 end
 
-function observe!(agent::QLearningDiscountedDiscriminatorAgent{O,A,E}, observation::O) where {O,A <: Real,E <: AbstractEncoder}
+function observe!(agent::QLearningDiscountedDiscriminatorAgent{O,A,E}, observation::O) where {O <: AbstractVector,A <: Real,E <: AbstractEncoder}
     agent.observation = observation
     agent.done = false
     
     nothing
 end
 
-function observe!(agent::QLearningDiscountedDiscriminatorAgent{O,A,E}, action::A, reward::Float64, observation::O, done::Bool) where {O,A <: Real,E <: AbstractEncoder}
+function observe!(agent::QLearningDiscountedDiscriminatorAgent{O,A,E}, action::A, reward::Float64, observation::O, done::Bool) where {O <: AbstractVector,A <: Real,E <: AbstractEncoder}
     add!(agent.buffer, agent.observation, agent.action, reward)
 
     agent.observation = observation

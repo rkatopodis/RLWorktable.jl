@@ -5,8 +5,7 @@ using Random
 
 using ..Buffers: MultiStepDynamicBuffer, add!
 
-# TODO: Use MultiStepDynamicBuffer
-mutable struct MonteCarloDiscountedDiscriminatorAgent{O,A <: Real,E <: AbstractEncoder} <: AbstractAgent
+mutable struct MonteCarloDiscountedDiscriminatorAgent{O <: AbstractVector,A <: Real,E <: AbstractEncoder} <: AbstractAgent{O,A}
     actions::UnitRange{A}
     n::Int
     size::Int
@@ -15,8 +14,7 @@ mutable struct MonteCarloDiscountedDiscriminatorAgent{O,A <: Real,E <: AbstractE
     ϵ::Float64
     # episodes::Int
     encoder::E
-    Q̂::Dict{A,RegressionDiscriminator}
-    # buffer::DynamicBinaryBuffer{A}
+    Q̂::Dict{A,FastRegressionDiscriminator}
     buffer::MultiStepDynamicBuffer{O,A}
     observation::Union{Nothing,O}
     done::Bool
@@ -34,7 +32,7 @@ mutable struct MonteCarloDiscountedDiscriminatorAgent{O,A <: Real,E <: AbstractE
         # !(0 ≤ discount ≤ 1) && throw(DomainError(discount, "Discount must lie in the [0, 1] interval"))
         # episodes < 1 && throw(DomainError(episodes, "Number of episodes must be greater then one"))
 
-        Q̂ = Dict(a => RegressionDiscriminator(size, n; γ=regressor_discount) for a in actions)
+        Q̂ = Dict(a => FastRegressionDiscriminator(size, n; γ=regressor_discount) for a in actions)
         buffer = MultiStepDynamicBuffer{O,A}()
 
         new(actions, n, size, regressor_discount, γ, ϵ, encoder, Q̂, buffer, nothing, false, nothing, rng)
@@ -79,7 +77,7 @@ end
 
 function Agents.reset!(agent::MonteCarloDiscountedDiscriminatorAgent)
     for action in agent.actions
-        agent.Q̂[action] = RegressionDiscriminator(agent.size, agent.n; γ=agent.regressor_discount)
+        agent.Q̂[action] = FastRegressionDiscriminator(agent.size, agent.n; γ=agent.regressor_discount)
     end
 
     reset!(agent.buffer)

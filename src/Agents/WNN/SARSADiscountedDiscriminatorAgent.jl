@@ -3,7 +3,7 @@ using Ramnet
 
 using ..Buffers: MultiStepDynamicBuffer, add!
 
-mutable struct SARSADiscountedDiscriminatorAgent{O,A <: Real,E <: AbstractEncoder} <: AbstractAgent
+mutable struct SARSADiscountedDiscriminatorAgent{O <: AbstractVector,A <: Real,E <: AbstractEncoder} <: AbstractAgent{O,A}
     steps::Int
     actions::UnitRange{A}
     n::Int
@@ -19,7 +19,7 @@ mutable struct SARSADiscountedDiscriminatorAgent{O,A <: Real,E <: AbstractEncode
     action::Union{Nothing,A}
     rng::MersenneTwister
 
-    function SARSADiscountedDiscriminatorAgent{O,A,E}(steps, actions, n, size, regressor_discount, rl_discount, ϵ, encoder::E; seed::Union{Nothing,Int}=nothing) where {O,A <: Real,E <: AbstractEncoder}
+    function SARSADiscountedDiscriminatorAgent{O,A,E}(steps, actions, n, size, regressor_discount, rl_discount, ϵ, encoder::E; seed::Union{Nothing,Int}=nothing) where {O <: AbstractVector,A <: Real,E <: AbstractEncoder}
         !isnothing(seed) && seed < 0 && throw(DomainError(seed, "Seed must be non-negative"))
         rng = isnothing(seed) ? MersenneTwister() : MersenneTwister(seed)
 
@@ -49,14 +49,14 @@ mutable struct SARSADiscountedDiscriminatorAgent{O,A <: Real,E <: AbstractEncode
     end
 end
 
-function observe!(agent::SARSADiscountedDiscriminatorAgent{O,A,E}, observation::O) where {O,A <: Real,E <: AbstractEncoder}
+function observe!(agent::SARSADiscountedDiscriminatorAgent{O,A,E}, observation::O) where {O <: AbstractVector,A <: Real,E <: AbstractEncoder}
     agent.observation = observation
     agent.done = false
     
     nothing
 end
 
-function observe!(agent::SARSADiscountedDiscriminatorAgent{O,A,E}, action::A, reward::Float64, observation::O, done::Bool) where {O,A <: Real,E <: AbstractEncoder}
+function observe!(agent::SARSADiscountedDiscriminatorAgent{O,A,E}, action::A, reward::Float64, observation::O, done::Bool) where {O <: AbstractVector,A <: Real,E <: AbstractEncoder}
     add!(agent.buffer, agent.observation, agent.action, reward)
 
     agent.observation = observation
