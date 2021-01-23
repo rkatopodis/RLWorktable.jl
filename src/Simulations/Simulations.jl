@@ -2,8 +2,8 @@ module Simulations
 
 import ..reset!
 
-using ..Environments: AbstractEnvironment, step!, render, close
-using ..Agents: AbstractAgent, select_action!, observe!, update!
+using ..Environments: AbstractEnvironment, env, step!, render, close, observation_type, observation_extrema, action_type, action_set
+using ..Agents: AbstractAgent, agent, encoding, select_action!, observe!, update!
 
 using ProgressMeter: @showprogress, Progress, next!
 using StatsBase: mean
@@ -55,7 +55,7 @@ function simulate(loop::EnvironmentLoop; episodes::Int, show_progress::Bool=true
     total_rewards
 end
 
-function simulate_episode(env::AbstractEnvironment, agent::AbstractAgent; viz=false)
+function simulate_episode(env::AbstractEnvironment, agent::AbstractAgent; viz=false, fps=50)
     reward, obs, done = reset!(env)
 
     total_reward = zero(Float64)
@@ -64,7 +64,7 @@ function simulate_episode(env::AbstractEnvironment, agent::AbstractAgent; viz=fa
         reward, obs, done = step!(env, action)
 
         total_reward += reward
-        viz && (render(env); sleep(1 / 50))
+        viz && (render(env); sleep(1 / fps))
     end
 
     viz && close(env)
@@ -77,25 +77,38 @@ function mean_total_reward(env::AbstractEnvironment, agent::AbstractAgent; episo
 end
 
 # Run a RL experiment with a given environment, learning algorithm and parametrization
-# Returns a matrix where each row contains the cumulative rewards obtaining in the respective
+# Returns a matrix where each column contains the cumulative rewards obtaining in the respective
 # training replicaton
 function experiment(replications::Int, env::E, agent::A; episodes=100, show_progress::Bool=true) where {E <: AbstractEnvironment,A <: AbstractAgent}
     loop = EnvironmentLoop(env, agent)
 
-    result = Array{Float64,2}(undef, replications, episodes)
+    result = Array{Float64,2}(undef, episodes, replications)
     
     if show_progress
         prog = Progress(replications)
     end
 
-    for row in eachrow(result)
-        simulate!(loop, row, episodes, false)
+    for col in eachcol(result)
+        simulate!(loop, col, episodes, replications == 1) # Simulation progress is only shown when there is only one replication
         reset!(agent)
 
         show_progress && next!(prog)
     end
 
     return result
+end
+
+function experiment(spec::Dict{Symbol,Any})
+    environment = env(spec[:env])
+    ag = agent(spec[:agent], environment)
+
+    exp_spec = spec[:experiment]
+
+    replications  = get(exp_spec, :replications, 1)
+    episodes      = get(exp_spec, :episodes, 100)
+    show_progress = get(exp_spec, :show_progress, true)
+
+    experiment(replications, environment, ag; episodes, show_progress)
 end
 
 end

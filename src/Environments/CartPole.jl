@@ -17,6 +17,7 @@ mutable struct CartPole <: AbstractEnvironment
     end
 end
 
+CartPole(; steps, seed) = CartPole(steps; seed)
 CartPoleV1(;seed=nothing) = CartPole(500; seed)
 
 function reset!(env::CartPole)

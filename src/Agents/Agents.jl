@@ -1,10 +1,12 @@
 module Agents
 
 using StatsBase: mean, sample, pweights
+using Ramnet.Encoders
 
+using ..Environments: AbstractEnvironment, observation_type, observation_length, observation_extrema, action_type, action_set
 import ..reset!
 
-export AbstractAgent, select_action!, observe!, update!
+export AbstractAgent, select_action!, observe!, update!, agent, encoding
 
 # TODO: Make this type parametric. All agents should know the types of its observations,
 #       actions and encoder
@@ -73,5 +75,53 @@ export ExpectedSARSADiscriminatorAgent
 
 include("WNN/QLearningDiscountedDiscriminatorAgent.jl")
 export QLearningDiscountedDiscriminatorAgent
+
+const agent_table = Dict{Symbol,Type{<:AbstractAgent}}(
+    :MonteCarloDiscountedDiscriminatorAgent => MonteCarloDiscountedDiscriminatorAgent,
+    :SARSADiscountedDiscriminatorAgent => SARSADiscountedDiscriminatorAgent,
+    :ExpectedSARSADiscriminatorAgent => ExpectedSARSADiscriminatorAgent,
+    :QLearningDiscountedDiscriminatorAgent => QLearningDiscountedDiscriminatorAgent
+)
+
+const encoding_table = Dict{Symbol,Type{<:AbstractEncoder}}(
+    :Thermometer => Thermometer,
+    :CircularThermometer => CircularThermometer
+)
+
+function encoding(name::String, minimum, maximum, resolution)
+    encoding_table[Symbol(name)](minimum, maximum, resolution)
+end
+
+function encoding(spec::Dict{Symbol,Any})
+    encoding(
+        spec[:name],
+        convert(Array{Float64}, spec[:minimum]),
+        convert(Array{Float64}, spec[:maximum]),
+        spec[:resolution]
+    ) 
+end
+
+function agent(name::String, ::Type{O}, ::Type{A}, actions, obs_size, encoder::E; kargs...) where {O,A,E <: AbstractEncoder}
+    agent_table[Symbol(name)]{O,A,E}(actions, obs_size, encoder; kargs...)
+end
+
+function agent(agent_spec::Dict{Symbol,Any}, env::AbstractEnvironment)
+    enc_spec = agent_spec[:encoding]
+    enc = encoding(
+        enc_spec[:name],
+        observation_extrema(env)...,
+        enc_spec[:resolution]
+    )
+    
+    agent(
+       agent_spec[:name],
+       observation_type(env),
+       action_type(env),
+       action_set(env),
+       observation_length(env),
+       enc;
+       agent_spec[:args]...
+    )
+end
 
 end
