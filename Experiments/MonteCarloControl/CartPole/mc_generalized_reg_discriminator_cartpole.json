@@ -18,7 +18,7 @@
     "args": {}
   },
   "experiment": {
-    "replications": 1,
-    "episodes": 3000
+    "replications": 30,
+    "episodes": 500
   }
 }
