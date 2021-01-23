@@ -8,6 +8,11 @@ using ..Agents: AbstractAgent, agent, encoding, select_action!, observe!, update
 using ProgressMeter: @showprogress, Progress, next!
 using StatsBase: mean
 
+using JSON
+using FileIO
+using Base.Filesystem: basename, splitext
+using Dates: format, now
+
 export EnvironmentLoop, simulate, simulate_episode, mean_total_reward, experiment
 
 struct EnvironmentLoop
@@ -82,23 +87,34 @@ end
 function experiment(replications::Int, env::E, agent::A; episodes=100, show_progress::Bool=true) where {E <: AbstractEnvironment,A <: AbstractAgent}
     loop = EnvironmentLoop(env, agent)
 
-    result = Array{Float64,2}(undef, episodes, replications)
+    results = Dict{String,Any}()
+
+    total_rewards = Array{Float64,2}(undef, episodes, replications)
     
     if show_progress
         prog = Progress(replications)
     end
 
-    for col in eachcol(result)
+    for (i, col) in Iterators.enumerate(eachcol(total_rewards))
         simulate!(loop, col, episodes, replications == 1) # Simulation progress is only shown when there is only one replication
+        
+        if i == replications
+            results["agent"] = deepcopy(agent)
+        end
+        
         reset!(agent)
-
+        
         show_progress && next!(prog)
     end
 
-    return result
+    results["total_rewards"] = total_rewards
+
+    return results
 end
 
-function experiment(spec::Dict{Symbol,Any})
+function experiment(spec_file::String; save_results::Bool=true)
+    spec = JSON.parsefile(spec_file, dicttype=Dict{Symbol,Any})
+
     environment = env(spec[:env])
     ag = agent(spec[:agent], environment)
 
@@ -108,7 +124,16 @@ function experiment(spec::Dict{Symbol,Any})
     episodes      = get(exp_spec, :episodes, 100)
     show_progress = get(exp_spec, :show_progress, true)
 
-    experiment(replications, environment, ag; episodes, show_progress)
+    results = experiment(replications, environment, ag; episodes, show_progress)
+
+    if save_results
+        base_filename = spec_file |> basename |> splitext |> first
+        results_filename = base_filename * "_" * format(now(), "yyyy-mm-ddTHH-MM-SS") * ".jld2"
+
+        save(results_filename, results)
+    end
+
+    results
 end
 
 end
