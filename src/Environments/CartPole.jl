@@ -1,7 +1,7 @@
 using Random
 using Distributions
 
-mutable struct CartPole <: AbstractEnvironment
+mutable struct CartPole <: AbstractEnvironment{Vector{Float64},Int}
     max_steps::Int
     steps::Int
     state::Vector{Float64}
@@ -28,10 +28,16 @@ function reset!(env::CartPole)
     return 0.0, env.state, env.done
 end
 
+observation_type(::CartPole) = Vector{Float64}
+observation_extrema(::CartPole) = ([-4.8, -4.0, -0.418, -3.0], [4.8, 4.0, 0.418, 3.0])
+observation_length(::CartPole) = 4
+action_type(::CartPole) = Int
+action_set(::CartPole) = -1:2:1
+
 # TODO: Check if env has been reseted
 function step!(env::CartPole, action::Int)
     env.done && error("Cannot step after episode's end. Reset environment")
-    (action != 0 && action != 1) && throw(DomainError(action, "Invalid action"))
+    (action != -1 && action != 1) && throw(DomainError(action, "Invalid action"))
 
     gravity = 9.8
     masscart = 1.0
@@ -45,13 +51,6 @@ function step!(env::CartPole, action::Int)
   # Angle at which to fail the episode
     theta_threshold_radians = 12 * 2 * pi / 360
     x_threshold = 2.4
-
-  # state_max = Float64[
-  #   2* x_threshold
-  #   typemax(Float64),
-  #   2 * theta_threshold_radians,
-  #   typemax(Float64)
-  # ]
 
     x, x_dot, theta, theta_dot = env.state
     force = (action == 1) ? force_mag : -force_mag
@@ -79,5 +78,5 @@ function step!(env::CartPole, action::Int)
     # buffer (???)
     # TODO: Think of a more elegant and/or efficient solution for the problem
     #       described above.
-    return 1.0, env.state[:], env.done 
+    return 1.0, env.state[:], env.done
 end

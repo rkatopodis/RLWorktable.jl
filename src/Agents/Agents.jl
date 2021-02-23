@@ -1,10 +1,11 @@
 module Agents
 
+using Random
 using StatsBase: mean, sample, pweights
 using Ramnet.Encoders
 
 using ..Environments: AbstractEnvironment, observation_type, observation_length, observation_extrema, action_type, action_set
-import ..reset!
+import ..reset!, ..update!, ..select_action
 
 export AbstractAgent, select_action!, observe!, update!, agent, encoding
 
@@ -18,14 +19,28 @@ abstract type AbstractAgent{O <: AbstractVector,A <: Real} end
 # function observe_first! end
 # function select_action end
 function observe! end
-function update! end
+# function update! end
 
-function q_values!(agent::G, observation::O, dest::AbstractVector{Float64}) where {O <: AbstractVector,A <: Real,G <: AbstractAgent{O,A}}
+# NOTE: This version assumes discriminators take in as input binary patterns, already encoded
+# function q_values!(agent::G, observation::O, dest::AbstractVector{Float64}) where {O <: AbstractVector,A <: Real,G <: AbstractAgent{O,A}}
+#     q_max = typemin(Float64)
+#     q = 0.0
+#     encoded_obs = encode(agent.encoder, observation) # TODO: Don't have to create a bunch of temp arrays here
+#     for (i, action) in Iterators.zip(eachindex(dest), agent.actions)
+#         q = predict(agent.Q̂[action], encoded_obs)
+#         dest[i] = q
+#         q_max = q > q_max ? q : q_max
+#     end
+
+#     return q_max
+# end
+
+# NOTE: This version assumes discriminators know how to encode inputs
+function q_values!(agent::G, observation::O, dest::AbstractVector{Float64}) where {O,A <: Real,G <: AbstractAgent{O,A}}
     q_max = typemin(Float64)
     q = 0.0
-    encoded_obs = encode(agent.encoder, observation) # TODO: Don't have to create a bunch of temp arrays here
     for (i, action) in Iterators.zip(eachindex(dest), agent.actions)
-        q = predict(agent.Q̂[action], encoded_obs)
+        q = predict(agent.Q̂[action], observation)
         dest[i] = q
         q_max = q > q_max ? q : q_max
     end
@@ -33,7 +48,7 @@ function q_values!(agent::G, observation::O, dest::AbstractVector{Float64}) wher
     return q_max
 end
 
-# TODO: Make a version that takes a destination vector 
+# TODO: Make a version that takes a destination vector
 # TODO: This implementation is wrong. It must take into account the epsilon prob.
 #       Refer to the Alberta MOOC exercise.
 function expected_q_value(agent::G, observation::O) where {O <: AbstractVector,A <: Real,G <: AbstractAgent{O,A}}
@@ -76,6 +91,15 @@ export ExpectedSARSADiscriminatorAgent
 include("WNN/QLearningDiscountedDiscriminatorAgent.jl")
 export QLearningDiscountedDiscriminatorAgent
 
+include("WNN/MCDiscriminatorAgent.jl")
+export MCDiscriminatorAgent
+
+include("WNN/MCDifferentialDiscriminatorAgent.jl")
+export MCDifferentialDiscriminatorAgent
+
+include("WNN/PG/FunctionalPG.jl")
+export FunctionalPG
+
 const agent_table = Dict{Symbol,Type{<:AbstractAgent}}(
     :MonteCarloDiscountedDiscriminatorAgent => MonteCarloDiscountedDiscriminatorAgent,
     :SARSADiscountedDiscriminatorAgent => SARSADiscountedDiscriminatorAgent,
@@ -89,16 +113,7 @@ const encoding_table = Dict{Symbol,Type{<:AbstractEncoder}}(
 )
 
 function encoding(name::String, minimum, maximum, resolution)
-    encoding_table[Symbol(name)](minimum, maximum, resolution)
-end
-
-function encoding(spec::Dict{Symbol,Any})
-    encoding(
-        spec[:name],
-        convert(Array{Float64}, spec[:minimum]),
-        convert(Array{Float64}, spec[:maximum]),
-        spec[:resolution]
-    ) 
+    encoding_table[Symbol(name)](eltype(minimum), minimum, maximum, resolution)
 end
 
 function agent(name::String, ::Type{O}, ::Type{A}, actions, obs_size, encoder::E; kargs...) where {O,A,E <: AbstractEncoder}
@@ -112,7 +127,7 @@ function agent(agent_spec::Dict{Symbol,Any}, env::AbstractEnvironment)
         observation_extrema(env)...,
         enc_spec[:resolution]
     )
-    
+
     agent(
        agent_spec[:name],
        observation_type(env),

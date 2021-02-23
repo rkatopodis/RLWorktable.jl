@@ -1,9 +1,13 @@
 module Approximators
 
+using Random
 using StatsBase: mean, pweights
 
 using Ramnet
 using Ramnet.Encoders
+
+include("PolicyApproximators/BinaryActionPolicy.jl")
+export BinaryActionPolicy
 
 struct DiscreteQDiscriminator{O <: AbstractVector,A <: Real,E <: AbstractEncoder}
     action_range::UnitRange{A}
@@ -44,7 +48,7 @@ function q_values!(M::DiscreteQDiscriminator{O,A,E}, observation::O, q_values::V
         dest[i] = q
         q_max = q > q_max ? q : q_max
     end
-  
+
     return q_max
 end
 
@@ -52,7 +56,7 @@ function (M::DiscreteQDiscriminator{O,A,E})(observation::O) where {O <: Abstract
     values = similar(M.action_range, Float64)
     q_values!(M, observation, values)
 
-    return values
+return values
 end
 
 function expected_q_value(M::DiscreteQDiscriminator{O,A,E}, observation::O; ϵ::Float64=0.0) where {O <: AbstractVector,A <: Real,E <: AbstractEncoder}

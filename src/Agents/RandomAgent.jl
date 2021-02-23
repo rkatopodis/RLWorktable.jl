@@ -13,7 +13,7 @@ struct RandomAgent{O <: AbstractVector,A <: Real} <: AbstractAgent{O,A}
 end
 
 # observe_first!(::RandomAgent) = nothing
-select_action(agent::RandomAgent, observation) = rand(agent.rng, agent.actions)
+select_action(agent::RandomAgent, args...; kargs...) = rand(agent.rng, agent.actions)
 observe!(::RandomAgent, observation) = nothing
 observe!(::RandomAgent, action, reward, observation, terminal) = nothing
 update!(::RandomAgent) = nothing

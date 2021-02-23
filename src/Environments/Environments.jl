@@ -13,7 +13,7 @@ observation_length,
 action_type,
 action_set
 
-abstract type AbstractEnvironment end
+abstract type AbstractEnvironment{O <: AbstractVector,A <: Real} end
 
 function step! end
 function render end
@@ -25,8 +25,8 @@ function action_type end
 function action_set end
 
 include("GymWrappers.jl")
-using .GymWrappers: GymCartPoleV1, GymMountainCarDiscrete, GymAcrobot
-export GymCartPoleV1, GymMountainCarDiscrete, GymAcrobot
+using .GymWrappers: GymCartPoleV1, GymMountainCarDiscrete, GymAcrobot, GymBreakoutRAM, GymInvertedPendulum
+export GymCartPoleV1, GymMountainCarDiscrete, GymAcrobot, GymBreakoutRAM, GymInvertedPendulum
 
 include("CartPole.jl")
 export CartPole, CartPoleV1
@@ -35,7 +35,9 @@ const environment_table = Dict{Symbol,Type{<:AbstractEnvironment}}(
     :GymCartPoleV1 => GymCartPoleV1,
     :CartPole => CartPole,
     :GymMountainCarDiscrete => GymMountainCarDiscrete,
-    :GymAcrobot => GymAcrobot
+    :GymAcrobot => GymAcrobot,
+    :GymBreakoutRAM => GymBreakoutRAM,
+    :GymInvertedPendulum => GymInvertedPendulum
 )
 
 function env(name::String; kargs...)

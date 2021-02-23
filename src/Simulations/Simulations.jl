@@ -15,12 +15,12 @@ using Dates: format, now
 
 export EnvironmentLoop, simulate, simulate_episode, mean_total_reward, experiment
 
-struct EnvironmentLoop
+struct EnvironmentLoop{O <: AbstractVector,A <: Real}
     env::AbstractEnvironment
-    agent::AbstractAgent
+    agent::AbstractAgent{O,A}
 end
 
-EnvironmentLoop(; env, agent) = EnvironmentLoop(env, agent)
+EnvironmentLoop(; env, agent::AbstractAgent{O,A}) where {O <: AbstractVector,A <: Real} = EnvironmentLoop{O,A}(env, agent)
 
 function simulate!(loop::EnvironmentLoop, total_rewards::AbstractVector{Float64}, episodes::Int, show_progress::Bool)
     episodes <= 0 && throw(
@@ -36,8 +36,10 @@ function simulate!(loop::EnvironmentLoop, total_rewards::AbstractVector{Float64}
 
         total_reward = reward
         while !done
-            action = select_action!(loop.agent, obs)
-            reward, obs, done = step!(loop.env, action)
+            ag = loop.agent
+            action = select_action!(ag, obs)
+            ev = loop.env
+            reward, obs, done = step!(ev, action)
 
             total_reward += reward
             observe!(loop.agent, action, reward, obs, done)
@@ -52,7 +54,7 @@ function simulate!(loop::EnvironmentLoop, total_rewards::AbstractVector{Float64}
     nothing
 end
 
-function simulate(loop::EnvironmentLoop; episodes::Int, show_progress::Bool=true)
+function simulate(loop::EnvironmentLoop{O,A}; episodes::Int, show_progress::Bool=true) where {O <: AbstractVector,A <: Real}
     total_rewards = Vector{Float64}(undef, episodes)
 
     simulate!(loop, total_rewards, episodes, show_progress)
@@ -64,17 +66,21 @@ function simulate_episode(env::AbstractEnvironment, agent::AbstractAgent; viz=fa
     reward, obs, done = reset!(env)
 
     total_reward = zero(Float64)
-    while !done
-        action = select_action!(agent, obs; ϵ=0.0)
-        reward, obs, done = step!(env, action)
+    try
+        while !done
+            action = select_action!(agent, obs)
+            reward, obs, done = step!(env, action)
 
-        total_reward += reward
-        viz && (render(env); sleep(1 / fps))
+            total_reward += reward
+            viz && (render(env); sleep(1 / fps))
+        end
+
+        viz && close(env)
+
+        return total_reward
+    finally
+        viz && close(env)
     end
-
-    viz && close(env)
-
-    return total_reward
 end
 
 function mean_total_reward(env::AbstractEnvironment, agent::AbstractAgent; episodes::Int=100)
@@ -90,20 +96,20 @@ function experiment(replications::Int, env::E, agent::A; episodes=100, show_prog
     results = Dict{String,Any}()
 
     total_rewards = Array{Float64,2}(undef, episodes, replications)
-    
+
     if show_progress
         prog = Progress(replications)
     end
 
     for (i, col) in Iterators.enumerate(eachcol(total_rewards))
         simulate!(loop, col, episodes, replications == 1) # Simulation progress is only shown when there is only one replication
-        
+
         if i == replications
             results["agent"] = deepcopy(agent)
         end
-        
+
         reset!(agent)
-        
+
         show_progress && next!(prog)
     end
 
