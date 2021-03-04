@@ -1,19 +1,15 @@
 using Random
 
-struct RandomAgent{O <: AbstractVector,A <: Real} <: AbstractAgent{O,A}
-    actions::AbstractUnitRange
-    rng::AbstractRNG
+using StaticArrays:SizedVector
 
-    function RandomAgent{O,A}(actions; seed::Union{Nothing,Int}=nothing) where {O <: AbstractVector,A <: Real}
-        !isnothing(seed) && seed < 0 && throw(DomainError(seed, "Seed must be non-negative"))
-        rng = isnothing(seed) ? MersenneTwister() : MersenneTwister(seed)
-
-        new(actions, rng)
-    end
+struct RandomAgent{O,A,E <: AbstractEnvironment{O,A}} <: AbstractAgent{O,A}
+    env::E
 end
 
 # observe_first!(::RandomAgent) = nothing
-select_action(agent::RandomAgent, args...; kargs...) = rand(agent.rng, agent.actions)
+function select_action!(agent::RandomAgent, args...; kargs...)
+    SizedVector{action_length(agent.env)}(agent.env.env.action_space.sample())
+end
 observe!(::RandomAgent, observation) = nothing
 observe!(::RandomAgent, action, reward, observation, terminal) = nothing
 update!(::RandomAgent) = nothing

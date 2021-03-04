@@ -2,31 +2,46 @@ module Environments
 
 import ..reset!
 
-export AbstractEnvironment, 
-step!,
-render,
-close,
-env,
-observation_type,
-observation_extrema,
-observation_length,
-action_type,
-action_set
+export AbstractEnvironment,
+    step!,
+    set_render_mode!,
+    render,
+    close,
+    env,
+    observation_type,
+    observation_extrema,
+    observation_length,
+    action_type,
+    action_length,
+    action_set
 
-abstract type AbstractEnvironment{O <: AbstractVector,A <: Real} end
+abstract type AbstractEnvironment{O <: AbstractVector,A} end
 
 function step! end
+function set_render_mode! end
 function render end
 function close end # Close render window. Gym-specific
 function observation_type end
 function observation_extrema end
 function observation_length end
 function action_type end
+function action_length end
 function action_set end
 
 include("GymWrappers.jl")
-using .GymWrappers: GymCartPoleV1, GymMountainCarDiscrete, GymAcrobot, GymBreakoutRAM, GymInvertedPendulum
-export GymCartPoleV1, GymMountainCarDiscrete, GymAcrobot, GymBreakoutRAM, GymInvertedPendulum
+using .GymWrappers:
+    GymCartPoleV1,
+    GymMountainCarDiscrete,
+    GymAcrobot,
+    GymBreakoutRAM,
+    GymInvertedPendulum,
+    GymHopperBulletV0
+export GymCartPoleV1,
+    GymMountainCarDiscrete,
+    GymAcrobot,
+    GymBreakoutRAM,
+    GymInvertedPendulum,
+    GymHopperBulletV0
 
 include("CartPole.jl")
 export CartPole, CartPoleV1
@@ -37,7 +52,7 @@ const environment_table = Dict{Symbol,Type{<:AbstractEnvironment}}(
     :GymMountainCarDiscrete => GymMountainCarDiscrete,
     :GymAcrobot => GymAcrobot,
     :GymBreakoutRAM => GymBreakoutRAM,
-    :GymInvertedPendulum => GymInvertedPendulum
+    :GymInvertedPendulum => GymInvertedPendulum,
 )
 
 function env(name::String; kargs...)

@@ -3,11 +3,14 @@ module Approximators
 using Random
 using StatsBase: mean, pweights
 
-using Ramnet
+using Ramnet.Models
 using Ramnet.Encoders
 
 include("PolicyApproximators/BinaryActionPolicy.jl")
 export BinaryActionPolicy
+
+include("PolicyApproximators/ContinousActionPolicy.jl")
+export ContinousActionPolicy
 
 struct DiscreteQDiscriminator{O <: AbstractVector,A <: Real,E <: AbstractEncoder}
     action_range::UnitRange{A}

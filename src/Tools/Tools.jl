@@ -5,8 +5,11 @@ pyplot()
 
 using Statistics
 using StatsBase
+# import Distributions: Uniform, Product
 
-export learning_curve
+# using DomainSet
+
+export learning_curve, Uniform
 
 function moving_average(a::AbstractVecOrMat, n::Int)
     @assert 1 <= n <= size(a, 1)
@@ -29,5 +32,9 @@ function learning_curve(experiment_result, ma::Int=1)
 
     plot(mean_series, ribbon=sd, legend=false)
 end
+
+# function Uniform(domain::VectorProductDomain)
+#     Product([Uniform(leftendpoint(d), rightendpoint(d)) for d in domain.domains])
+# end
 
 end

@@ -10,7 +10,7 @@ export DynamicBuffer, add!, reset!
 
 include("Environments/Environments.jl")
 using .Environments
-export env, step!, render, close, GymCartPoleV1, GymMountainCarDiscrete, GymAcrobot, GymBreakoutRAM, CartPoleV1
+export env, step!, render, close, GymCartPoleV1, GymMountainCarDiscrete, GymAcrobot, GymBreakoutRAM, CartPoleV1, GymHopperBulletV0
 
 include("Approximators/Approximators.jl")
 
@@ -24,7 +24,8 @@ export agent,
   QLearningDiscountedDiscriminatorAgent,
   MCDiscriminatorAgent,
   MCDifferentialDiscriminatorAgent,
-  FunctionalPG
+  FunctionalPG,
+  ContinousFunctionalPG
 
 include("Simulations/Simulations.jl")
 using .Simulations

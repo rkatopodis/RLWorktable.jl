@@ -22,7 +22,7 @@ end
 
 # TODO: Validate action (must be ether -1 or +1)
 function update!(p::BinaryActionPolicy{T,O,E}, observation::O, action::Int, G) where {T <: Real,O <: AbstractVector{T},E <: AbstractEncoder{T}}
-    weight = -1*sign(action) * (1 - probability(p, action, observation)) * G
+    weight = -1 * sign(action) * (1 - probability(p, action, observation)) * G
 
     add_kernel!(p.f, observation, p.f.η * weight)
 
@@ -34,7 +34,7 @@ function select_action(p::BinaryActionPolicy{T,O,E}, observation::O) where {T <:
 end
 
 function reset!(p::BinaryActionPolicy{T,O,E}) where {T <: Real,O <: AbstractVector{T},E <: AbstractEncoder{T}}
-    reset!(p.f)
+    Ramnet.reset!(p.f)
 
     return nothing
 end

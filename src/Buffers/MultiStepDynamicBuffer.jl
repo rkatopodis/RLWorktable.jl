@@ -1,11 +1,11 @@
 mutable struct MultiStepDynamicBuffer{O,A} <: AbstractBuffer
-    transitions::Vector{Transition}
+    transitions::Vector{Transition{O,A}}
 
-    MultiStepDynamicBuffer{O,A}() where {O,A} = new(Transition[])
+    MultiStepDynamicBuffer{O,A}() where {O,A} = new(Transition{O,A}[])
 end
 
 function add!(buffer::MultiStepDynamicBuffer{O,A}, obs::O, action::A, reward::Float64) where {O,A}
-    push!(buffer.transitions, Transition(obs, action, reward))
+    push!(buffer.transitions, Transition{O,A}(obs, action, reward))
 end
 
 reset!(buffer::MultiStepDynamicBuffer) = empty!(buffer.transitions)

@@ -4,14 +4,14 @@ using Random
 using StatsBase: mean, sample, pweights
 using Ramnet.Encoders
 
-using ..Environments: AbstractEnvironment, observation_type, observation_length, observation_extrema, action_type, action_set
+using ..Environments: AbstractEnvironment, observation_type, observation_length, observation_extrema, action_type, action_set, action_length
 import ..reset!, ..update!, ..select_action
 
 export AbstractAgent, select_action!, observe!, update!, agent, encoding
 
 # TODO: Make this type parametric. All agents should know the types of its observations,
 #       actions and encoder
-abstract type AbstractAgent{O <: AbstractVector,A <: Real} end
+abstract type AbstractAgent{O <: AbstractVector,A} end
 
 # I can make use of multiple dispatch here so that both observe_first! and observe!
 # are called observe!. The "observe_first!" equivalent only takes a observation while
@@ -99,6 +99,9 @@ export MCDifferentialDiscriminatorAgent
 
 include("WNN/PG/FunctionalPG.jl")
 export FunctionalPG
+
+include("WNN/PG/ContinousFunctionalPG.jl")
+export ContinousFunctionalPG
 
 const agent_table = Dict{Symbol,Type{<:AbstractAgent}}(
     :MonteCarloDiscountedDiscriminatorAgent => MonteCarloDiscountedDiscriminatorAgent,
