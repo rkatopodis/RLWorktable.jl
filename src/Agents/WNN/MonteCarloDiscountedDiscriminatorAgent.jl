@@ -6,7 +6,7 @@ using Random
 using ..Buffers: MultiStepDynamicBuffer, add!
 
 mutable struct MonteCarloDiscountedDiscriminatorAgent{O <: AbstractVector,A <: Real,E <: AbstractEncoder} <: AbstractAgent{O,A}
-    actions::UnitRange{A}
+    actions::StepRange{A,Int}
     n::Int
     size::Int
     regressor_discount::Float64

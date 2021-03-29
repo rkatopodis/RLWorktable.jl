@@ -35,18 +35,18 @@ end
 close(env::AbstractGymEnvironment) = env.env.close()
 
 # --------------------------------- CartPole --------------------------------- #
-struct GymCartPoleV1 <: AbstractGymEnvironment{Vector{Float64},Int}
+struct GymCartPoleV1 <: AbstractGymEnvironment{SizedVector{4,Float64},Int}
     env::PyObject
 
     GymCartPoleV1() = new(gym.make("CartPole-v1"))
 end
 
-observation_type(::GymCartPoleV1) = Vector{Float64}
+observation_type(::GymCartPoleV1) = SizedVector{4,Float64}
 observation_extrema(::GymCartPoleV1) =
-    ([-4.8, -4.0, -0.418, -3.0], [4.8, 4.0, 0.418, 3.0])
+    (SVector(-4.8, -4.0, -0.418, -3.0), SVector(4.8, 4.0, 0.418, 3.0))
 observation_length(::GymCartPoleV1) = 4
 action_type(::GymCartPoleV1) = Int
-action_set(::GymCartPoleV1) = -1:2:1
+action_set(::GymCartPoleV1) = SA[-1, 1]
 
 function step!(env::GymCartPoleV1, action::Int)
     (action != -1 && action != 1) &&
@@ -54,8 +54,10 @@ function step!(env::GymCartPoleV1, action::Int)
 
     obs, reward, done, _ = env.env.step(action == -1 ? 0 : 1)
     
-    return reward, obs, done
+    return reward, SizedVector{4}(obs), done
 end
+
+reset!(env::GymCartPoleV1) = 0.0, SizedVector{4}(env.env.reset()), false
 
 # -------------------------- MontainCar (Discrete) --------------------------- #
 struct GymMountainCarDiscrete <: AbstractGymEnvironment{Vector{Float64},Int}
@@ -73,7 +75,10 @@ end
 GymMountainCarDiscrete(; steps200) = GymMountainCarDiscrete(steps)
 
 observation_type(::GymMountainCarDiscrete) = Vector{Float64}
+observation_extrema(::GymMountainCarDiscrete) = ([-1.2, -0.07], [0.6, 0.07])
+observation_length(::GymMountainCarDiscrete) = 2
 action_type(::GymMountainCarDiscrete) = Int
+action_set(::GymMountainCarDiscrete) = SA[0,1,2]
 
 function step!(env::GymMountainCarDiscrete, action::Int)
     (action != 0 && action != 1 && action != 2) &&
@@ -100,7 +105,10 @@ end
 GymAcrobot(; steps=500) = GymAcrobot(steps)
 
 observation_type(::GymAcrobot) = Vector{Float64}
+observation_extrema(::GymAcrobot) = (fill(-1, 6), fill(1, 6))
+observation_length(::GymAcrobot) = 6
 action_type(::GymAcrobot) = Int
+action_set(::GymAcrobot) = SA[-1, 0, 1]
 
 function step!(env::GymAcrobot, action::Int)
     (action != 0 && action != 1 && action != -1) &&

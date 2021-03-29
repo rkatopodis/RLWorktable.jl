@@ -1,7 +1,8 @@
 using Random
 using Distributions
+using StaticArrays
 
-mutable struct CartPole <: AbstractEnvironment{Vector{Float64},Int}
+mutable struct CartPole <: AbstractEnvironment{SizedVector{4,Float64},Int}
     max_steps::Int
     steps::Int
     state::Vector{Float64}
@@ -20,19 +21,19 @@ end
 CartPole(; steps, seed) = CartPole(steps; seed)
 CartPoleV1(;seed=nothing) = CartPole(500; seed)
 
-function reset!(env::CartPole)
+    function reset!(env::CartPole)
     rand!(env.rng, Uniform(-0.05, 0.05), env.state)
     env.done = false
     env.steps = 0
 
-    return 0.0, env.state, env.done
+    return 0.0, SizedVector{4}(env.state), env.done
 end
 
-observation_type(::CartPole) = Vector{Float64}
-observation_extrema(::CartPole) = ([-4.8, -4.0, -0.418, -3.0], [4.8, 4.0, 0.418, 3.0])
+observation_type(::CartPole) = SizedVector{4,Float64}
+observation_extrema(::CartPole) = (SVector(-4.8, -4.0, -0.418, -3.0), SVector(4.8, 4.0, 0.418, 3.0))
 observation_length(::CartPole) = 4
 action_type(::CartPole) = Int
-action_set(::CartPole) = -1:2:1
+action_set(::CartPole) = SA[-1,1]
 
 # TODO: Check if env has been reseted
 function step!(env::CartPole, action::Int)
@@ -78,5 +79,5 @@ function step!(env::CartPole, action::Int)
     # buffer (???)
     # TODO: Think of a more elegant and/or efficient solution for the problem
     #       described above.
-    return 1.0, env.state[:], env.done
+    return 1.0, SizedVector{4}(env.state[:]), env.done
 end

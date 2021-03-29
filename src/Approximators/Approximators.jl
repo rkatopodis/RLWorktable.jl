@@ -12,6 +12,9 @@ export BinaryActionPolicy
 include("PolicyApproximators/ContinousActionPolicy.jl")
 export ContinousActionPolicy
 
+include("ValueApproximators/QDiscriminator.jl")
+export QDiscriminator
+
 struct DiscreteQDiscriminator{O <: AbstractVector,A <: Real,E <: AbstractEncoder}
     action_range::UnitRange{A}
     discount::Float64

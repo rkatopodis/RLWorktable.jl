@@ -22,31 +22,31 @@ function observe! end
 # function update! end
 
 # NOTE: This version assumes discriminators take in as input binary patterns, already encoded
-# function q_values!(agent::G, observation::O, dest::AbstractVector{Float64}) where {O <: AbstractVector,A <: Real,G <: AbstractAgent{O,A}}
-#     q_max = typemin(Float64)
-#     q = 0.0
-#     encoded_obs = encode(agent.encoder, observation) # TODO: Don't have to create a bunch of temp arrays here
-#     for (i, action) in Iterators.zip(eachindex(dest), agent.actions)
-#         q = predict(agent.Q̂[action], encoded_obs)
-#         dest[i] = q
-#         q_max = q > q_max ? q : q_max
-#     end
-
-#     return q_max
-# end
-
-# NOTE: This version assumes discriminators know how to encode inputs
-function q_values!(agent::G, observation::O, dest::AbstractVector{Float64}) where {O,A <: Real,G <: AbstractAgent{O,A}}
+function q_values!(agent::G, observation::O, dest::AbstractVector{Float64}) where {O <: AbstractVector,A <: Real,G <: AbstractAgent{O,A}}
     q_max = typemin(Float64)
     q = 0.0
+    encoded_obs = encode(agent.encoder, observation) # TODO: Don't have to create a bunch of temp arrays here
     for (i, action) in Iterators.zip(eachindex(dest), agent.actions)
-        q = predict(agent.Q̂[action], observation)
+        q = predict(agent.Q̂[action], encoded_obs)
         dest[i] = q
         q_max = q > q_max ? q : q_max
     end
 
     return q_max
 end
+
+# NOTE: This version assumes discriminators know how to encode inputs
+# function q_values!(agent::G, observation::O, dest::AbstractVector{Float64}) where {O,A <: Real,G <: AbstractAgent{O,A}}
+#     q_max = typemin(Float64)
+#     q = 0.0
+#     for (i, action) in Iterators.zip(eachindex(dest), agent.actions)
+#         q = predict(agent.Q̂[action], observation)
+#         dest[i] = q
+#         q_max = q > q_max ? q : q_max
+#     end
+
+#     return q_max
+# end
 
 # TODO: Make a version that takes a destination vector
 # TODO: This implementation is wrong. It must take into account the epsilon prob.
@@ -58,44 +58,26 @@ function expected_q_value(agent::G, observation::O) where {O <: AbstractVector,A
     return mean(values, pweights((values .== q_max) .+ agent.ϵ))
 end
 
-# TODO: Make this a function of the Q-value approximation, not the agent.
-#       (Define somewhere else a DiscreteQDiscriminator. Maybe in a Approximators
-#        module)
-function select_action!(agent::G, observation::O; ϵ::Float64=agent.ϵ) where {O <: AbstractVector,A <: Real,G <: AbstractAgent{O,A}}
-    # TODO: I could avoid creating these temporary arrays here
-    values = similar(agent.actions, Float64)
-    q_max = q_values!(agent, observation, values)
-
-    if rand(agent.rng) < ϵ # Random action taken with ϵ probability
-        agent.action = rand(agent.rng, agent.actions)
-    else
-        # Selecting action that maximizes Q̂, with ties broken randomly
-        agent.action = sample(agent.rng, agent.actions, pweights(values .== q_max))
-    end
-
-    return agent.action::A
-end
-
 include("RandomAgent.jl")
 export RandomAgent
 
-include("WNN/MonteCarloDiscountedDiscriminatorAgent.jl")
-export MonteCarloDiscountedDiscriminatorAgent
+# include("WNN/MonteCarloDiscountedDiscriminatorAgent.jl")
+# export MonteCarloDiscountedDiscriminatorAgent
 
 include("WNN/SARSADiscountedDiscriminatorAgent.jl")
 export SARSADiscountedDiscriminatorAgent
 
-include("WNN/ExpectedSARSADiscriminatorAgent.jl")
-export ExpectedSARSADiscriminatorAgent
+# include("WNN/ExpectedSARSADiscriminatorAgent.jl")
+# export ExpectedSARSADiscriminatorAgent
 
-include("WNN/QLearningDiscountedDiscriminatorAgent.jl")
-export QLearningDiscountedDiscriminatorAgent
+# include("WNN/QLearningDiscountedDiscriminatorAgent.jl")
+# export QLearningDiscountedDiscriminatorAgent
 
 include("WNN/MCDiscriminatorAgent.jl")
 export MCDiscriminatorAgent
 
-include("WNN/MCDifferentialDiscriminatorAgent.jl")
-export MCDifferentialDiscriminatorAgent
+# include("WNN/MCDifferentialDiscriminatorAgent.jl")
+# export MCDifferentialDiscriminatorAgent
 
 include("WNN/PG/FunctionalPG.jl")
 export FunctionalPG
@@ -103,11 +85,14 @@ export FunctionalPG
 include("WNN/PG/ContinousFunctionalPG.jl")
 export ContinousFunctionalPG
 
+include("WNN/PG/FunctionalAC.jl")
+export FunctionalAC
+
 const agent_table = Dict{Symbol,Type{<:AbstractAgent}}(
-    :MonteCarloDiscountedDiscriminatorAgent => MonteCarloDiscountedDiscriminatorAgent,
+    # :MonteCarloDiscountedDiscriminatorAgent => MonteCarloDiscountedDiscriminatorAgent,
     :SARSADiscountedDiscriminatorAgent => SARSADiscountedDiscriminatorAgent,
-    :ExpectedSARSADiscriminatorAgent => ExpectedSARSADiscriminatorAgent,
-    :QLearningDiscountedDiscriminatorAgent => QLearningDiscountedDiscriminatorAgent
+    # :ExpectedSARSADiscriminatorAgent => ExpectedSARSADiscriminatorAgent,
+    # :QLearningDiscountedDiscriminatorAgent => QLearningDiscountedDiscriminatorAgent
 )
 
 const encoding_table = Dict{Symbol,Type{<:AbstractEncoder}}(
@@ -141,5 +126,23 @@ function agent(agent_spec::Dict{Symbol,Any}, env::AbstractEnvironment)
        agent_spec[:args]...
     )
 end
+
+# TODO: Make this a function of the Q-value approximation, not the agent.
+#       (Define somewhere else a DiscreteQDiscriminator. Maybe in a Approximators
+#        module)
+# function select_action!(agent::MonteCarloDiscountedDiscriminatorAgent{O,A,E}, observation::O; ϵ::Float64=agent.ϵ) where {O <: AbstractVector,A <: Real,E <: AbstractEncoder}
+#     # TODO: I could avoid creating these temporary arrays here
+#     values = similar(agent.actions, Float64)
+#     q_max = q_values!(agent, observation, values)
+
+#     if rand(agent.rng) < ϵ # Random action taken with ϵ probability
+#         agent.action = rand(agent.rng, agent.actions)
+#     else
+#         # Selecting action that maximizes Q̂, with ties broken randomly
+#         agent.action = sample(agent.rng, agent.actions, pweights(values .== q_max))
+#     end
+
+#     return agent.action::A
+# end
 
 end

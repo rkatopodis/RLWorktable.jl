@@ -18,14 +18,15 @@ include("Agents/Agents.jl")
 using .Agents
 export agent,
   RandomAgent,
-  MonteCarloDiscountedDiscriminatorAgent,
+  # MonteCarloDiscountedDiscriminatorAgent,
   SARSADiscountedDiscriminatorAgent,
-  ExpectedSARSADiscriminatorAgent,
-  QLearningDiscountedDiscriminatorAgent,
+  # ExpectedSARSADiscriminatorAgent,
+  # QLearningDiscountedDiscriminatorAgent,
   MCDiscriminatorAgent,
-  MCDifferentialDiscriminatorAgent,
+  # MCDifferentialDiscriminatorAgent,
   FunctionalPG,
-  ContinousFunctionalPG
+  ContinousFunctionalPG,
+  FunctionalAC
 
 include("Simulations/Simulations.jl")
 using .Simulations
