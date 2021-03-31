@@ -7,7 +7,7 @@ using Ramnet.Encoders
 using ..Environments: AbstractEnvironment, observation_type, observation_length, observation_extrema, action_type, action_set, action_length
 import ..reset!, ..update!, ..select_action
 
-export AbstractAgent, select_action!, observe!, update!, agent, encoding
+export AbstractAgent, select_action!, observe!, update!, agent, encoding, make_agent
 
 # TODO: Make this type parametric. All agents should know the types of its observations,
 #       actions and encoder
@@ -22,25 +22,12 @@ function observe! end
 # function update! end
 
 # NOTE: This version assumes discriminators take in as input binary patterns, already encoded
-function q_values!(agent::G, observation::O, dest::AbstractVector{Float64}) where {O <: AbstractVector,A <: Real,G <: AbstractAgent{O,A}}
-    q_max = typemin(Float64)
-    q = 0.0
-    encoded_obs = encode(agent.encoder, observation) # TODO: Don't have to create a bunch of temp arrays here
-    for (i, action) in Iterators.zip(eachindex(dest), agent.actions)
-        q = predict(agent.Q̂[action], encoded_obs)
-        dest[i] = q
-        q_max = q > q_max ? q : q_max
-    end
-
-    return q_max
-end
-
-# NOTE: This version assumes discriminators know how to encode inputs
-# function q_values!(agent::G, observation::O, dest::AbstractVector{Float64}) where {O,A <: Real,G <: AbstractAgent{O,A}}
+# function q_values!(agent::G, observation::O, dest::AbstractVector{Float64}) where {O <: AbstractVector,A <: Real,G <: AbstractAgent{O,A}}
 #     q_max = typemin(Float64)
 #     q = 0.0
+#     encoded_obs = encode(agent.encoder, observation) # TODO: Don't have to create a bunch of temp arrays here
 #     for (i, action) in Iterators.zip(eachindex(dest), agent.actions)
-#         q = predict(agent.Q̂[action], observation)
+#         q = predict(agent.Q̂[action], encoded_obs)
 #         dest[i] = q
 #         q_max = q > q_max ? q : q_max
 #     end
@@ -88,7 +75,11 @@ export ContinousFunctionalPG
 include("WNN/PG/FunctionalAC.jl")
 export FunctionalAC
 
+include("WNN/PG/ContinousFunctionalAC.jl")
+export ContinousFunctionalAC
+
 const agent_table = Dict{Symbol,Type{<:AbstractAgent}}(
+    :MCDiscriminatorAgent => MCDiscriminatorAgent,
     # :MonteCarloDiscountedDiscriminatorAgent => MonteCarloDiscountedDiscriminatorAgent,
     :SARSADiscountedDiscriminatorAgent => SARSADiscountedDiscriminatorAgent,
     # :ExpectedSARSADiscriminatorAgent => ExpectedSARSADiscriminatorAgent,
@@ -125,6 +116,17 @@ function agent(agent_spec::Dict{Symbol,Any}, env::AbstractEnvironment)
        enc;
        agent_spec[:args]...
     )
+end
+
+function make_agent(env::AbstractEnvironment, agentspec::Dict{Symbol,Any})
+    encoder_name = agentspec[:encoding][:name] |> Symbol
+    encoder_resolution = agentspec[:encoding][:resolution]
+
+    enc = encoding_table[encoder_name](observation_extrema(env)..., encoder_resolution)
+
+    agent_name = agentspec[:name] |> Symbol
+
+    agent_table[agent_name](env, enc; agentspec[:args]...)
 end
 
 # TODO: Make this a function of the Q-value approximation, not the agent.

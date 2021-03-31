@@ -16,6 +16,8 @@ using ..Environments:
 using ..Agents:
     AbstractAgent, agent, encoding, select_action!, observe!, update!
 
+using ..Sessions
+
 using ProgressMeter: @showprogress, Progress, next!
 using StatsBase:mean
 
@@ -25,15 +27,52 @@ using Base.Filesystem: basename, splitext
 using Dates: format, now
 
 export EnvironmentLoop,
-    simulate, simulate_episode, mean_total_reward, experiment
+    simulate, simulate_episode, mean_total_reward, experiment, simulate!
 
 struct EnvironmentLoop{O,A,E <: AbstractEnvironment{O,A},AG <: AbstractAgent{O,A}}
     env::E
     agent::AG
 end
 
-# EnvironmentLoop(; env, agent::AbstractAgent{O,A}) where {O,A} =
-#     EnvironmentLoop{O,A}(env, agent)
+function simulate!(s::Session)
+    
+    sizehint!(s.cummulative_rewards, s.episodes)
+    prog = Progress(s.episodes - s.elapsed_episodes)
+    checkpoint_counter = s.checkpoint_interval
+
+    while s.elapsed_episodes < s.episodes
+        reward, obs, done = reset!(s.env)
+        observe!(s.agent, obs)
+
+        total_reward = reward
+
+        while !done
+            action = select_action!(s.agent, obs)
+            reward, obs, done = step!(s.env, action)
+
+            total_reward += reward
+            observe!(s.agent, action, reward, obs, done)
+            update!(s.agent)
+        end
+
+        s.elapsed_episodes += 1
+        push!(s.cummulative_rewards, total_reward)
+
+        # Make checkpoint here
+
+        checkpoint_counter -= 1
+        if checkpoint_counter == 0
+            save_session!(s)
+            checkpoint_counter = s.checkpoint_interval
+        end
+        
+        next!(prog)
+    end
+
+    save_session!(s)
+
+    nothing
+end
 
 function simulate!(
     loop::EnvironmentLoop{O,A,E,AG},

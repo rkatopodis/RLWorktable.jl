@@ -5,9 +5,8 @@ pyplot()
 
 using Statistics
 using StatsBase
-# import Distributions: Uniform, Product
 
-# using DomainSet
+using ..Sessions
 
 export learning_curve, Uniform
 
@@ -32,6 +31,8 @@ function learning_curve(experiment_result, ma::Int=1)
 
     plot(mean_series, ribbon=sd, legend=false)
 end
+
+learning_curve(s::Session, ma::Int=1) = learning_curve(s.cummulative_rewards, ma)
 
 # function Uniform(domain::VectorProductDomain)
 #     Product([Uniform(leftendpoint(d), rightendpoint(d)) for d in domain.domains])

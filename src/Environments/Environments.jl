@@ -13,7 +13,8 @@ export AbstractEnvironment,
     observation_length,
     action_type,
     action_length,
-    action_set
+    action_set,
+    make_env
 
 abstract type AbstractEnvironment{O <: AbstractVector,A} end
 
@@ -62,6 +63,10 @@ end
 # TODO: Check for the presence of required keys, default values for non-essential ones
 function env(spec::Dict{Symbol,Any})
     env(spec[:name]; spec[:args]...)
+end
+
+function make_env(envspec::Dict{Symbol,Any})
+    environment_table[Symbol(envspec[:name])]()
 end
 
 end

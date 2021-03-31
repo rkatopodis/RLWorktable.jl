@@ -3,7 +3,7 @@ using Ramnet.Models.AltDiscriminators:RegressionDiscriminator
 
 using StaticArrays
 
-using ..Approximators:BinaryActionPolicy, QDiscriminator
+using ..Approximators:BinaryActionPolicy
 using ..Buffers: MultiStepDynamicBuffer, add!
 
 
@@ -16,7 +16,7 @@ mutable struct FunctionalAC{OS,T <: Real,O <: StaticArray{Tuple{OS},T,1},E <: Ab
     observation::Union{Nothing,O}
     done::Bool
     action::Union{Nothing,Int}
-    rng::MersenneTwister
+    rng::MersenneTwister # Is this even used?
 end
 
 function FunctionalAC(::Type{O}, steps, n, η, epochs, discount, forgetting_factor, encoder::E; seed::Union{Nothing,Int}=nothing) where {OS,T <: Real,O <: StaticArray{Tuple{OS},T,1},E <: AbstractEncoder{T}}
@@ -26,8 +26,7 @@ function FunctionalAC(::Type{O}, steps, n, η, epochs, discount, forgetting_fact
     n < 1 && throw(DomainError(n, "Tuple size must be at least 1"))
 
     actor = BinaryActionPolicy(O, n, encoder; η, epochs, partitioner=:uniform_random, seed)
-    # critic = QDiscriminator(O, SA[-1, 1], n, forgetting_factor, encoder, seed)
-    critic = RegressionDiscriminator{1}(OS, n, encoder; seed, γ=forgetting_factor)
+    critic = RegressionDiscriminator{1}(OS, 32, encoder; seed, γ=forgetting_factor)
 
     buffer = MultiStepDynamicBuffer{O,Int}()
 
@@ -58,8 +57,7 @@ function observe!(agent::FunctionalAC{OS,T,O,E}, action::Int, reward::Float64, o
     end
 
     agent.observation = observation
-agent.done = done
-
+    agent.done = done
     nothing
 end
 
@@ -81,14 +79,13 @@ function update!(agent::FunctionalAC)
       for transition in Iterators.reverse(agent.buffer)
           G = transition.reward + agent.γ * G
 
-          update!(agent.actor, transition.observation, transition.action, G)
-          # update!(agent.critic, transition.observation, transition.action, G)
+          δ = G - (predict(agent.critic, transition.observation) |> first)
+          update!(agent.actor, transition.observation, transition.action, δ)
           train!(agent.critic, transition.observation, G)
       end
 
       reset!(agent.buffer)
   elseif length(agent.buffer) == agent.steps
-      # G = agent.Q̂(agent.observation, agent.action)
       G = predict(agent.critic, agent.observation) |> first
 
       for transition in Iterators.reverse(agent.buffer)
@@ -97,8 +94,8 @@ function update!(agent::FunctionalAC)
 
       t = popfirst!(agent.buffer)
 
-      update!(agent.actor, t.observation, t.action, G)
-      # update!(agent.critic, t.observation, t.action, G)
+      δ = G - (predict(agent.critic, t.observation) |> first)
+      update!(agent.actor, t.observation, t.action, δ)
       train!(agent.critic, t.observation, G)
   end
 

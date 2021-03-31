@@ -26,11 +26,16 @@ export agent,
   # MCDifferentialDiscriminatorAgent,
   FunctionalPG,
   ContinousFunctionalPG,
-  FunctionalAC
+  FunctionalAC,
+  ContinousFunctionalAC
+
+include("Sessions/Sessions.jl")
+using .Sessions
+export load_session, save_session!
 
 include("Simulations/Simulations.jl")
 using .Simulations
-export simulate_episode, EnvironmentLoop, simulate, mean_total_reward, experiment
+export simulate_episode, EnvironmentLoop, simulate, mean_total_reward, experiment, simulate!
 
 include("Tools/Tools.jl")
 

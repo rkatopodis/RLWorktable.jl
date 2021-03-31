@@ -35,8 +35,9 @@ end
 
 # TODO: Return type can only be determined at runtime. Make AbstractEnvironment parametric
 function MCDiscriminatorAgent(
-    env, encoder::E; n, forget::Float64=1.0, gamma::Float64=1.0, epsilon::Float64=0.01, seed::Union{Nothing,Int}=nothing) where {T <: Real,E <: AbstractEncoder{T}}
-    MCDiscriminatorAgent{observation_type(env),action_type(env),T,E}(action_set(env), n, observation_length(env), forget, gamma, epsilon, encoder; seed)
+    env, encoder::E; tuple_size, forgetting_factor::Float64=1.0, discount::Float64=1.0, epsilon::Float64=0.01, seed::Union{Nothing,Int}=nothing) where {T <: Real,E <: AbstractEncoder{T}}
+    # MCDiscriminatorAgent{observation_type(env),action_type(env),T,E}(action_set(env), tuple_size, observation_length(env), forgetting_factor, discount, epsilon, encoder; seed)
+    MCDiscriminatorAgent(observation_type(env), action_set(env), tuple_size, forgetting_factor, discount, epsilon, encoder; seed)
 end
 
 function MCDiscriminatorAgent(env, encoder::E, n, forgetting_factor=1.0, discount=1.0, ϵ=0.01, seed=nothing) where {T <: Real,E <: AbstractEncoder{T}}

@@ -158,13 +158,13 @@ action_set(::GymInvertedPendulum) = -3.0:1:3.0
 # ================================= pybullet ================================= #
 # ---------------------------- HopperBulletEnv-v0 ---------------------------- #
 struct GymHopperBulletV0 <:
-       AbstractGymEnvironment{Vector{Float32},SVector{3,Float32}}
+       AbstractGymEnvironment{SizedVector{15,Float32},SVector{3,Float32}}
     env::PyObject
     
     GymHopperBulletV0() = new(gym.make("HopperBulletEnv-v0"))
 end
 
-observation_type(::GymHopperBulletV0) = Vector{Float32}
+observation_type(::GymHopperBulletV0) = SizedVector{15,Float32}
 observation_extrema(::GymHopperBulletV0) = error("Not implemented")
 observation_length(::GymHopperBulletV0) = 15
 action_type(::GymHopperBulletV0) = SVector{3,Float32} # Vector{Float32}
@@ -176,12 +176,14 @@ set_render_mode!(env::GymHopperBulletV0, mode::Symbol=:human) = render(env, mode
 function step!(env::GymHopperBulletV0, action::StaticArray{Tuple{3},Float32,1})
     # !env.env.action_space.contains(action) && throw(DomainError(action, "Invalid action"))
     
-    obs, reward, done, _ = env.env.step(action)
+    obs, reward, done, _ = env.env.step(clamp.(action, -1, 1))
     
-    return reward, obs, done
+    return reward, SizedVector{15}(obs), done
 end
 
 close(env::GymHopperBulletV0) = nothing
+
+reset!(env::GymHopperBulletV0) = 0.0, SizedVector{15}(env.env.reset()), false
 
 function __init__()
     copy!(gym, pyimport_conda("gym", "gym", "conda-forge"))
