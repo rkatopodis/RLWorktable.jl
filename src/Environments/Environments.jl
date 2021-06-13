@@ -14,7 +14,8 @@ export AbstractEnvironment,
     action_type,
     action_length,
     action_set,
-    make_env
+    make_env,
+    fps
 
 abstract type AbstractEnvironment{O <: AbstractVector,A} end
 
@@ -28,32 +29,48 @@ function observation_length end
 function action_type end
 function action_length end
 function action_set end
+function fps end
+
+fps(::Type{<:AbstractEnvironment}) = 60
 
 include("GymWrappers.jl")
 using .GymWrappers:
     GymCartPoleV1,
+    GymLunarLander,
     GymMountainCarDiscrete,
     GymAcrobot,
     GymBreakoutRAM,
     GymInvertedPendulum,
-    GymHopperBulletV0
+    GymCartPoleBulletV1,
+    GymReacherBulletV0,
+    GymHopperBulletV0,
+    GymHalfCheetahBulletV0
 export GymCartPoleV1,
+    GymLunarLander,
     GymMountainCarDiscrete,
     GymAcrobot,
     GymBreakoutRAM,
     GymInvertedPendulum,
-    GymHopperBulletV0
+    GymCartPoleBulletV1,
+    GymReacherBulletV0,
+    GymHopperBulletV0,
+    GymHalfCheetahBulletV0
 
 include("CartPole.jl")
 export CartPole, CartPoleV1
 
 const environment_table = Dict{Symbol,Type{<:AbstractEnvironment}}(
     :GymCartPoleV1 => GymCartPoleV1,
+    :GymLunarLander => GymLunarLander,
     :CartPole => CartPole,
     :GymMountainCarDiscrete => GymMountainCarDiscrete,
     :GymAcrobot => GymAcrobot,
     :GymBreakoutRAM => GymBreakoutRAM,
     :GymInvertedPendulum => GymInvertedPendulum,
+    :GymCartPoleBulletV1 => GymCartPoleBulletV1,
+    :GymReacherBulletV0 => GymReacherBulletV0,
+    :GymHopperBulletV0 => GymHopperBulletV0,
+    :GymHalfCheetahBulletV0 => GymHalfCheetahBulletV0
 )
 
 function env(name::String; kargs...)

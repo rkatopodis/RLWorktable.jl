@@ -75,8 +75,23 @@ export ContinousFunctionalPG
 include("WNN/PG/FunctionalAC.jl")
 export FunctionalAC
 
-include("WNN/PG/ContinousFunctionalAC.jl")
-export ContinousFunctionalAC
+include("WNN/PG/BinaryRegularizedAC.jl")
+export BinaryRegularizedAC
+
+include("WNN/PG/BinaryAdaptiveAC.jl")
+export BinaryAdaptiveAC
+
+# include("WNN/PG/ContinousFunctionalAC.jl")
+# export ContinousFunctionalAC
+
+include("WNN/PG/ContinousRegularizedAC.jl")
+export ContinousRegularizedAC
+
+# include("WNN/PG/AltContinousFunctionalAC.jl")
+# export AltContinousFunctionalAC
+
+include("WNN/PG/ContinousAdaptiveAC.jl")
+export ContinousAdaptiveAC
 
 const agent_table = Dict{Symbol,Type{<:AbstractAgent}}(
     :MCDiscriminatorAgent => MCDiscriminatorAgent,
@@ -84,6 +99,15 @@ const agent_table = Dict{Symbol,Type{<:AbstractAgent}}(
     :SARSADiscountedDiscriminatorAgent => SARSADiscountedDiscriminatorAgent,
     # :ExpectedSARSADiscriminatorAgent => ExpectedSARSADiscriminatorAgent,
     # :QLearningDiscountedDiscriminatorAgent => QLearningDiscountedDiscriminatorAgent
+    :FunctionalPG => FunctionalPG,
+    :FunctionalAC => FunctionalAC,
+    :BinaryRegularizedAC => BinaryRegularizedAC,
+    :BinaryAdaptiveAC => BinaryAdaptiveAC,
+    :ContinousFunctionalPG => ContinousFunctionalPG,
+    # :ContinousFunctionalAC => ContinousFunctionalAC,
+    :ContinousRegularizedAC => ContinousRegularizedAC,
+    # :AltContinousFunctionalAC => AltContinousFunctionalAC,
+    :ContinousAdaptiveAC => ContinousAdaptiveAC
 )
 
 const encoding_table = Dict{Symbol,Type{<:AbstractEncoder}}(
@@ -118,15 +142,15 @@ function agent(agent_spec::Dict{Symbol,Any}, env::AbstractEnvironment)
     )
 end
 
-function make_agent(env::AbstractEnvironment, agentspec::Dict{Symbol,Any})
+function make_agent(env_type::Type{<:AbstractEnvironment}, agentspec::Dict{Symbol,Any}; seed::Union{Nothing,UInt}=nothing)
     encoder_name = agentspec[:encoding][:name] |> Symbol
     encoder_resolution = agentspec[:encoding][:resolution]
 
-    enc = encoding_table[encoder_name](observation_extrema(env)..., encoder_resolution)
+    enc = encoding_table[encoder_name](observation_extrema(env_type)..., encoder_resolution)
 
     agent_name = agentspec[:name] |> Symbol
 
-    agent_table[agent_name](env, enc; agentspec[:args]...)
+    agent_table[agent_name](env_type, enc; agentspec[:args]..., seed)
 end
 
 # TODO: Make this a function of the Q-value approximation, not the agent.

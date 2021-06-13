@@ -11,7 +11,7 @@ struct QDiscriminator{AS,OS,T <: Real,O <: StaticArray{Tuple{OS},T,1},A <: Real,
     rng::MersenneTwister
 end
 
-function QDiscriminator(::Type{O}, actions::StaticArray{Tuple{AS},A,1}, n::Int, γ::Float64, encoder::E, seed::Union{Nothing,Int}) where {AS,OS,T <: Real,O <: StaticArray{Tuple{OS},T,1},A <: Real,E <: AbstractEncoder{T}}
+function QDiscriminator(::Type{O}, actions::StaticArray{Tuple{AS},A,1}, n::Int, γ::Float64, encoder::E, seed::Union{Nothing,UInt}) where {AS,OS,T <: Real,O <: StaticArray{Tuple{OS},T,1},A <: Real,E <: AbstractEncoder{T}}
     !isnothing(seed) && seed < 0 && throw(DomainError(seed, "Seed must be non-negative"))
     rng = isnothing(seed) ? MersenneTwister() : MersenneTwister(seed)
 
@@ -45,7 +45,7 @@ function select_action(q::QDiscriminator{AS,OS,T,O,A,E}, observation::O) where {
     return sample(q.rng, q.actions, pweights(q.last_q_values .== q_max))
 end
 
-function reset!(q::QDiscriminator; seed::Union{Nothing,Int}=nothing)
+function reset!(q::QDiscriminator; seed::Union{Nothing,UInt}=nothing)
     if !isnothing(seed)
         if seed >= 0
             Random.seed!(q.rng, seed)
@@ -54,7 +54,10 @@ function reset!(q::QDiscriminator; seed::Union{Nothing,Int}=nothing)
         end
     end
 
-    reset!(q.Q; seed)
+    # reset!(q.Q; seed)
+    for (_, v) in q.Q
+        Ramnet.reset!(v; seed)
+    end
     fill!(q.last_q_values, 0.0)
 
     nothing

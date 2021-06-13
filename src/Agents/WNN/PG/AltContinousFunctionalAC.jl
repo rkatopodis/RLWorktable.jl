@@ -3,13 +3,13 @@ using Ramnet.Models.AltDiscriminators:RegressionDiscriminator
 
 using LinearAlgebra:Diagonal
 
-using ..Approximators:ContinousActionPolicy
+using ..Approximators:AltContinousActionPolicy
 using ..Buffers: MultiStepDynamicBuffer, add!
 
-mutable struct ContinousFunctionalAC{OS,AS,T <: Real,O <: StaticArray{Tuple{OS},T,1},A <: StaticArray{Tuple{AS},T,1},E <: AbstractEncoder{T},C <: AbstractMatrix{T}} <: AbstractAgent{O,A}
+mutable struct AltContinousFunctionalAC{OS,AS,T <: Real,O <: StaticArray{Tuple{OS},T,1},A <: StaticArray{Tuple{AS},T,1},E <: AbstractEncoder{T}} <: AbstractAgent{O,A}
     steps::Int
     γ::Float64
-    actor::ContinousActionPolicy{OS,AS,T,O,A,E,C}
+    actor::AltContinousActionPolicy{OS,AS,T,O,A,E}
     critic::RegressionDiscriminator{1}
     buffer::MultiStepDynamicBuffer{O,A}
     observation::Union{Nothing,O}
@@ -20,24 +20,29 @@ mutable struct ContinousFunctionalAC{OS,AS,T <: Real,O <: StaticArray{Tuple{OS},
     # rng::MersenneTwister
 end
 
-function ContinousFunctionalAC(::Type{O}, ::Type{A}, steps, n, η, epochs, discount, forgetting_factor, encoder::E, cov::C; seed::Union{Nothing,Int}=nothing) where {OS,AS,T <: Real,O <: StaticArray{Tuple{OS},T,1},A <: StaticArray{Tuple{AS},T,1},E <: AbstractEncoder{T},C <: AbstractMatrix{T}}
+function AltContinousFunctionalAC(::Type{O}, ::Type{A}, steps, n, η, epochs, discount, forgetting_factor, encoder::E; seed::Union{Nothing,Int}=nothing) where {OS,AS,T <: Real,O <: StaticArray{Tuple{OS},T,1},A <: StaticArray{Tuple{AS},T,1},E <: AbstractEncoder{T}}
     # !isnothing(seed) && seed < 0 && throw(DomainError(seed, "Seed must be non-negative"))
     # rng = isnothing(seed) ? MersenneTwister() : MersenneTwister(seed)
 
     n < 1 && throw(DomainError(n, "Tuple size must be at least 1"))
 
-    actor = ContinousActionPolicy(O, A, n, encoder;cov, η, epochs, partitioner=:uniform_random, seed)
+    actor = AltContinousActionPolicy(O, A, n, encoder; η, epochs, partitioner=:uniform_random, seed)
     critic = RegressionDiscriminator{1}(OS, 32, encoder; seed, γ=forgetting_factor)
     buffer = MultiStepDynamicBuffer{O,A}()
 
-    ContinousFunctionalAC{OS,AS,T,O,A,E,C}(steps, discount, actor, critic, buffer, nothing, false, nothing, nothing, nothing)
+    AltContinousFunctionalAC{OS,AS,T,O,A,E}(steps, discount, actor, critic, buffer, nothing, false, nothing, nothing, nothing)
 end
 
-function ContinousFunctionalAC(env, encoder::E; steps, tuple_size, learning_rate, epochs, discount, forgetting_factor=1.0, cov::C, seed=nothing) where {T <: Real,E <: AbstractEncoder{T},C <: AbstractVector}
-    ContinousFunctionalAC(observation_type(env), action_type(env), steps, tuple_size, learning_rate, epochs, discount, forgetting_factor, encoder, Diagonal(convert(Vector{T}, cov)); seed)
+# function AltContinousFunctionalAC(env, encoder::E; steps, tuple_size, learning_rate, epochs, discount, forgetting_factor=1.0, cov::C, seed=nothing) where {T <: Real,E <: AbstractEncoder{T},C <: AbstractMatrix{T}}
+#     AltContinousFunctionalAC(observation_type(env), action_type(env), steps, tuple_size, learning_rate, epochs, discount, forgetting_factor, encoder, cov; seed)
+# end
+
+function AltContinousFunctionalAC(env, encoder::E; steps, tuple_size, learning_rate, epochs, discount, forgetting_factor=1.0, seed=nothing) where {T <: Real,E <: AbstractEncoder{T}}
+    # AltContinousFunctionalAC(env, encoder; steps, tuple_size, learning_rate, epochs, discount, forgetting_factor, cov=Diagonal(cov), seed=nothing)
+    AltContinousFunctionalAC(observation_type(env), action_type(env), steps, tuple_size, learning_rate, epochs, discount, forgetting_factor, encoder; seed)
 end
 
-function observe!(agent::ContinousFunctionalAC{OS,AS,T,O,A,E,C}, observation::O) where {OS,AS,T,O,A,E,C}
+function observe!(agent::AltContinousFunctionalAC{OS,AS,T,O,A,E}, observation::O) where {OS,AS,T,O,A,E}
     agent.observation = observation
     agent.done = false
 
@@ -61,7 +66,7 @@ end
 
 # TODO: All observe! methods are the same for all agents. Generalize.
 # TODO: This method does not need to take in the action
-function observe!(agent::ContinousFunctionalAC{OS,AS,T,O,A,E,C}, action::A, reward::Float64, observation::O, done::Bool) where {OS,AS,T,O,A,E,C}
+function observe!(agent::AltContinousFunctionalAC{OS,AS,T,O,A,E}, action::A, reward::Float64, observation::O, done::Bool) where {OS,AS,T,O,A,E}
     add!(agent.buffer, agent.observation, agent.action, reward)
 
     if !done
@@ -78,11 +83,11 @@ function observe!(agent::ContinousFunctionalAC{OS,AS,T,O,A,E,C}, action::A, rewa
     nothing
 end
 
-function _select_action(agent::ContinousFunctionalAC{OS,AS,T,O,A,E,C}, observation::O) where {OS,AS,T,O,A,E,C}
+function _select_action(agent::AltContinousFunctionalAC{OS,AS,T,O,A,E}, observation::O) where {OS,AS,T,O,A,E}
     select_action(agent.actor, observation)
 end
 
-function select_action!(agent::ContinousFunctionalAC{OS,AS,T,O,A,E,C}, observation::O) where {OS,AS,T,O,A,E,C}
+function select_action!(agent::AltContinousFunctionalAC{OS,AS,T,O,A,E}, observation::O) where {OS,AS,T,O,A,E}
     if !isnothing(agent.action)
         return agent.action
     end
@@ -90,7 +95,7 @@ function select_action!(agent::ContinousFunctionalAC{OS,AS,T,O,A,E,C}, observati
     return _select_action(agent, observation)
 end
 
-function update!(agent::ContinousFunctionalAC)
+function update!(agent::AltContinousFunctionalAC)
     if agent.done
         G = 0.0
         for transition in Iterators.reverse(agent.buffer)
@@ -119,7 +124,7 @@ function update!(agent::ContinousFunctionalAC)
     nothing
 end
 
-function reset!(agent::ContinousFunctionalAC; seed::Union{Nothing,Int}=nothing)
+function reset!(agent::AltContinousFunctionalAC; seed::Union{Nothing,Int}=nothing)
     if !isnothing(seed)
         if seed ≥ 0
             seed!(agent.rng, seed)

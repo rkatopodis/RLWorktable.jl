@@ -31,11 +31,11 @@ export agent,
 
 include("Sessions/Sessions.jl")
 using .Sessions
-export load_session, save_session!
+export load_session, save_session!, load_trial, save_trial
 
 include("Simulations/Simulations.jl")
 using .Simulations
-export simulate_episode, EnvironmentLoop, simulate, mean_total_reward, experiment, simulate!
+export simulate_episode, EnvironmentLoop, simulate, mean_total_reward, experiment, simulate!, visualize
 
 include("Tools/Tools.jl")
 

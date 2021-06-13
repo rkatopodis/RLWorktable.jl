@@ -12,31 +12,46 @@ mutable struct FunctionalPG{OS,T <: Real,O <: StaticArray{Tuple{OS},T,1},E <: Ab
     observation::Union{Nothing,O}
     done::Bool
     action::Union{Nothing,Int}
+    min_obs::Union{Nothing,O}
+    max_obs::Union{Nothing,O}
     rng::MersenneTwister
 end
   
-function FunctionalPG(::Type{O}, n, η, epochs, encoder::E; seed::Union{Nothing,Int}=nothing) where {OS,T <: Real,O <: StaticArray{Tuple{OS},T,1},E <: AbstractEncoder{T}}
+function FunctionalPG(::Type{O}, n, start_learning_rate, end_learning_rate, learning_rate_decay, epochs, discount, encoder::E; seed::Union{Nothing,UInt}=nothing) where {OS,T <: Real,O <: StaticArray{Tuple{OS},T,1},E <: AbstractEncoder{T}}
     !isnothing(seed) && seed < 0 && throw(DomainError(seed, "Seed must be non-negative"))
     rng = isnothing(seed) ? MersenneTwister() : MersenneTwister(seed)
 
     n < 1 && throw(DomainError(n, "Tuple size must be at least 1"))
 
-    policy = BinaryActionPolicy(O, n, encoder; η, epochs, partitioner=:uniform_random, seed)
+    policy = BinaryActionPolicy(O, n, encoder; start_learning_rate, end_learning_rate, learning_rate_decay, epochs, partitioner=:uniform_random, seed)
 
     buffer = MultiStepDynamicBuffer{O,Int}()
 
-    FunctionalPG{OS,T,O,E}(1, policy, buffer, nothing, false, nothing, rng)
+    FunctionalPG{OS,T,O,E}(discount, policy, buffer, nothing, false, nothing, nothing, nothing, rng)
 end
 
 function FunctionalPG(
-  env, encoder::E; n, η, epochs=1, seed=nothing) where {T <: Real,E <: AbstractEncoder{T}}
+  env, encoder::E; tuple_size, start_learning_rate, end_learning_rate, learning_rate_decay, epochs=1, discount=1, seed=nothing) where {T <: Real,E <: AbstractEncoder{T}}
 
-  FunctionalPG(observation_type(env), n, η, epochs, encoder; seed)
+  FunctionalPG(observation_type(env), tuple_size, start_learning_rate, end_learning_rate, learning_rate_decay, epochs, discount, encoder; seed)
 end
 
 function observe!(agent::FunctionalPG{OS,T,O,E}, observation::O) where {OS,T <: Real,O <: StaticArray{Tuple{OS},T,1},E <: AbstractEncoder{T}}
     agent.observation = observation
     agent.done = false
+
+    # Finding the edges of the domain
+    if isnothing(agent.min_obs)
+      agent.min_obs = observation
+    else
+        agent.min_obs = min.(agent.min_obs, observation)
+    end
+
+    if isnothing(agent.max_obs)
+        agent.max_obs = observation
+    else
+        agent.max_obs = max.(agent.max_obs, observation)
+    end
 
     nothing
 end
@@ -49,6 +64,10 @@ function observe!(agent::FunctionalPG{OS,T,O,E}, action::Int, reward::Float64, o
   agent.observation = observation
   agent.done = done
 
+  # Finding the edges of the domain
+  agent.min_obs = min.(agent.min_obs)
+  agent.max_obs = max.(agent.max_obs)
+  
   nothing
 end
 
@@ -75,9 +94,13 @@ function update!(agent::FunctionalPG{OS,T,O,E}) where {OS,T <: Real,O <: StaticA
   nothing
 end
 
-function Agents.reset!(agent::FunctionalPG{OS,T,O,E}) where {OS,T <: Real,O <: StaticArray{Tuple{OS},T,1},E <: AbstractEncoder{T}}
-  reset!(agent.policy)
+function Agents.reset!(agent::FunctionalPG{OS,T,O,E}; seed::Union{Nothing,UInt}=nothing) where {OS,T <: Real,O <: StaticArray{Tuple{OS},T,1},E <: AbstractEncoder{T}}
+  reset!(agent.policy; seed)
   reset!(agent.buffer)
 
+  agent.observation = nothing
+  agent.action = nothing
+  agent.done = false
+  
   nothing
 end

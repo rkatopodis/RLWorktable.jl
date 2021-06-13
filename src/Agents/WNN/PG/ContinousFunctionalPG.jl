@@ -3,9 +3,9 @@ using Ramnet.Encoders
 using ..Approximators:ContinousActionPolicy
 using ..Buffers: MultiStepDynamicBuffer, add!
 
-mutable struct ContinousFunctionalPG{OS,AS,T <: Real,O <: StaticArray{Tuple{OS},T,1},A <: StaticArray{Tuple{AS},T,1},E <: AbstractEncoder{T},C <: AbstractMatrix{T}} <: AbstractAgent{O,A}
+mutable struct ContinousFunctionalPG{OS,AS,T <: Real,O <: StaticArray{Tuple{OS},T,1},A <: StaticArray{Tuple{AS},T,1},E <: AbstractEncoder{T}} <: AbstractAgent{O,A}
     γ::Float64
-    policy::ContinousActionPolicy{OS,AS,T,O,A,E,C}
+    policy::ContinousActionPolicy{OS,AS,T,O,A,E}
     buffer::MultiStepDynamicBuffer{O,A}
     observation::Union{Nothing,O}
     done::Bool
@@ -15,24 +15,24 @@ mutable struct ContinousFunctionalPG{OS,AS,T <: Real,O <: StaticArray{Tuple{OS},
     # rng::MersenneTwister
 end
 
-function ContinousFunctionalPG(::Type{O}, ::Type{A}, n, η, γ, encoder::E, cov::C; seed::Union{Nothing,Int}=nothing) where {OS,AS,T <: Real,O <: StaticArray{Tuple{OS},T,1},A <: StaticArray{Tuple{AS},T,1},E <: AbstractEncoder{T},C <: AbstractMatrix{T}}
+function ContinousFunctionalPG(::Type{O}, ::Type{A}, n, start_learning_rate, end_learning_rate, learning_rate_decay, epochs, discount, encoder::E, start_cov::Float64, end_cov::Float64, cov_decay::Int; seed::Union{Nothing,UInt}=nothing) where {OS,AS,T <: Real,O <: StaticArray{Tuple{OS},T,1},A <: StaticArray{Tuple{AS},T,1},E <: AbstractEncoder{T}}
     # !isnothing(seed) && seed < 0 && throw(DomainError(seed, "Seed must be non-negative"))
     # rng = isnothing(seed) ? MersenneTwister() : MersenneTwister(seed)
 
     n < 1 && throw(DomainError(n, "Tuple size must be at least 1"))
 
-    policy = ContinousActionPolicy(O, A, n, encoder;cov, η, partitioner=:uniform_random, seed)
+    policy = ContinousActionPolicy(O, A, n, encoder;start_cov, end_cov, cov_decay, start_learning_rate, end_learning_rate, learning_rate_decay, epochs, partitioner=:uniform_random, seed)
     buffer = MultiStepDynamicBuffer{O,A}()
 
-    ContinousFunctionalPG{OS,AS,T,O,A,E,C}(γ, policy, buffer, nothing, false, nothing, nothing, nothing)
+    ContinousFunctionalPG{OS,AS,T,O,A,E}(discount, policy, buffer, nothing, false, nothing, nothing, nothing)
 end
 
-function ContinousFunctionalPG(env, encoder::E; n, η, γ, cov::C, seed=nothing) where {T <: Real,E <: AbstractEncoder{T},C <: AbstractMatrix{T}}
+function ContinousFunctionalPG(env, encoder::E; tuple_size, start_learning_rate, end_learning_rate, learning_rate_decay, epochs, discount, start_cov, end_cov, cov_decay, seed=nothing) where {T <: Real,E <: AbstractEncoder{T},C <: AbstractMatrix{T}}
     # ContinousFunctionalPG{action_length(env),T,observation_type(env),action_type(env),E,C}(n, observation_length(env), η, γ, encoder, cov; seed)
-    ContinousFunctionalPG(observation_type(env), action_type(env), n, η, γ, encoder, cov; seed)
+    ContinousFunctionalPG(observation_type(env), action_type(env), tuple_size, start_learning_rate, end_learning_rate, learning_rate_decay, epochs, discount, encoder, start_cov, end_cov, cov_decay; seed)
 end
 
-function observe!(agent::ContinousFunctionalPG{OS,AS,T,O,A,E,C}, observation::O) where {OS,AS,T,O,A,E,C}
+function observe!(agent::ContinousFunctionalPG{OS,AS,T,O,A,E}, observation::O) where {OS,AS,T,O,A,E}
     agent.observation = observation
     agent.done = false
 
@@ -54,7 +54,7 @@ end
 
 # TODO: All observe! methods are the same for all agents. Generalize.
 # TODO: This method does not need to take in the action
-function observe!(agent::ContinousFunctionalPG{OS,AS,T,O,A,E,C}, action::A, reward::Float64, observation::O, done::Bool) where {OS,AS,T,O,A,E,C}
+function observe!(agent::ContinousFunctionalPG{OS,AS,T,O,A,E}, action::A, reward::Float64, observation::O, done::Bool) where {OS,AS,T,O,A,E}
     add!(agent.buffer, agent.observation, agent.action, reward)
 
     agent.observation = observation
@@ -67,7 +67,7 @@ function observe!(agent::ContinousFunctionalPG{OS,AS,T,O,A,E,C}, action::A, rewa
     nothing
 end
 
-function select_action!(agent::ContinousFunctionalPG{OS,AS,T,O,A,E,C}, observation::O) where {OS,AS,T,O,A,E,C}
+function select_action!(agent::ContinousFunctionalPG{OS,AS,T,O,A,E}, observation::O) where {OS,AS,T,O,A,E}
     agent.action = select_action(agent.policy, observation)
 
     return agent.action
@@ -88,9 +88,13 @@ function update!(agent::ContinousFunctionalPG)
     nothing
 end
 
-function Agents.reset!(agent::ContinousFunctionalPG)
-    reset!(agent.policy)
+function Agents.reset!(agent::ContinousFunctionalPG; seed::Union{Nothing,UInt}=nothing)
+    reset!(agent.policy; seed)
     reset!(agent.buffer)
+
+    agent.observation = nothing
+    agent.action = nothing
+    agent.done = false
 
     nothing
 end

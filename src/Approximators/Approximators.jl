@@ -9,8 +9,26 @@ using Ramnet.Encoders
 include("PolicyApproximators/BinaryActionPolicy.jl")
 export BinaryActionPolicy
 
+include("PolicyApproximators/RegularizedBinaryPolicy.jl")
+export RegularizedBinaryPolicy
+
+include("PolicyApproximators/AdaptiveBinaryPolicy.jl")
+export AdaptiveBinaryPolicy
+
 include("PolicyApproximators/ContinousActionPolicy.jl")
 export ContinousActionPolicy
+
+include("PolicyApproximators/RegularizedContinousPolicy.jl")
+export RegularizedContinousPolicy
+
+include("PolicyApproximators/AltContinousActionPolicy.jl")
+export AltContinousActionPolicy
+
+include("PolicyApproximators/AdaptiveContinousPolicy.jl")
+export AdaptiveContinousPolicy
+
+include("ValueApproximators/VDiscriminator.jl")
+export VDiscriminator
 
 include("ValueApproximators/QDiscriminator.jl")
 export QDiscriminator
