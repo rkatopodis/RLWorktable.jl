@@ -55,7 +55,8 @@ end
 # TODO: All observe! methods are the same for all agents. Generalize.
 # TODO: This method does not need to take in the action
 function observe!(agent::ContinousFunctionalPG{OS,AS,T,O,A,E}, action::A, reward::Float64, observation::O, done::Bool) where {OS,AS,T,O,A,E}
-    add!(agent.buffer, agent.observation, agent.action, reward)
+    # REMEMBER: you are forcing reward clipping here!!
+    add!(agent.buffer, agent.observation, agent.action, clamp(reward, -1.0, 1.0))
 
     agent.observation = observation
     agent.done = done

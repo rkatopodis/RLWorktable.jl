@@ -117,6 +117,7 @@ function simulate!(t::Trial{O,A,E,AG}) where {O,A,E,AG}
 
     for r in 1:t.replications
         t.elapsed_episodes = 0
+        reset!(t.agent; seed=rand(t.rng, UInt))
         for epi in 1:t.episodes
             reward, obs, done = reset!(env)
             observe!(t.agent, obs)
@@ -155,7 +156,6 @@ function simulate!(t::Trial{O,A,E,AG}) where {O,A,E,AG}
             )
         end
         t.elapsed_reps += 1
-        reset!(t.agent; seed=rand(t.rng, UInt))
     end
     save_trial!(t)
 
@@ -184,7 +184,7 @@ function visualize(::Type{EN}, agent::AG) where {O,A,EN <: AbstractEnvironment{O
 
                 # a = clamp.(select_action!(s.agent, obs), -1.0f0, 1.0f0)
                 a = select_action!(agent, obs)
-
+                # @printf "Action: %0.2f\n" a[1]
                 reward, obs, done = step!(en, a)
                 score += reward
                 frame += 1
@@ -196,7 +196,7 @@ function visualize(::Type{EN}, agent::AG) where {O,A,EN <: AbstractEnvironment{O
                 if restart_delay == 0
                     @printf "Score: %0.2f in %i frames\n" score frame
 
-                    restart_delay = 60 * 1  # 2 sec at 60 fps
+                    restart_delay = fps(EN) * 0.5  # half a sec at given fps
                 else
                     restart_delay -= 1
                     restart_delay == 0 && break

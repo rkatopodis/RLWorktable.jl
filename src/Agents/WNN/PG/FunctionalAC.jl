@@ -19,13 +19,13 @@ mutable struct FunctionalAC{OS,T <: Real,O <: StaticArray{Tuple{OS},T,1},E <: Ab
     rng::MersenneTwister # Is this even used?
 end
 
-function FunctionalAC(::Type{O}, steps, n, η, epochs, discount, forgetting_factor, encoder::E; seed::Union{Nothing,Int}=nothing) where {OS,T <: Real,O <: StaticArray{Tuple{OS},T,1},E <: AbstractEncoder{T}}
+function FunctionalAC(::Type{O}, steps, n, start_learning_rate, end_learning_rate, learning_rate_decay, epochs, discount, forgetting_factor, encoder::E; seed::Union{Nothing,Int}=nothing) where {OS,T <: Real,O <: StaticArray{Tuple{OS},T,1},E <: AbstractEncoder{T}}
     !isnothing(seed) && seed < 0 && throw(DomainError(seed, "Seed must be non-negative"))
     rng = isnothing(seed) ? MersenneTwister() : MersenneTwister(seed)
 
     n < 1 && throw(DomainError(n, "Tuple size must be at least 1"))
 
-    actor = BinaryActionPolicy(O, n, encoder; η, epochs, partitioner=:uniform_random, seed)
+    actor = BinaryActionPolicy(O, n, encoder; start_learning_rate, end_learning_rate, learning_rate_decay, epochs, partitioner=:uniform_random, seed)
     critic = RegressionDiscriminator{1}(OS, 32, encoder; seed, γ=forgetting_factor)
 
     buffer = MultiStepDynamicBuffer{O,Int}()
@@ -34,8 +34,8 @@ function FunctionalAC(::Type{O}, steps, n, η, epochs, discount, forgetting_fact
 end
 
 function FunctionalAC(
-  env, encoder::E; steps, tuple_size, learning_rate, epochs=1, discount=1.0, forgetting_factor=1, seed=nothing) where {T <: Real,E <: AbstractEncoder{T}}
-  FunctionalAC(observation_type(env), steps, tuple_size, learning_rate, epochs, discount, forgetting_factor, encoder; seed)
+  env, encoder::E; steps, tuple_size, start_learning_rate, end_learning_rate, learning_rate_decay, epochs=1, discount=1.0, forgetting_factor=1, seed=nothing) where {T <: Real,E <: AbstractEncoder{T}}
+  FunctionalAC(observation_type(env), steps, tuple_size, start_learning_rate, end_learning_rate, learning_rate_decay, epochs, discount, forgetting_factor, encoder; seed)
 end
 
 function observe!(agent::FunctionalAC{OS,T,O,E}, observation::O) where {OS,T <: Real,O <: StaticArray{Tuple{OS},T,1},E <: AbstractEncoder{T}}

@@ -81,8 +81,8 @@ export BinaryRegularizedAC
 include("WNN/PG/BinaryAdaptiveAC.jl")
 export BinaryAdaptiveAC
 
-# include("WNN/PG/ContinousFunctionalAC.jl")
-# export ContinousFunctionalAC
+include("WNN/PG/ContinousFunctionalAC.jl")
+export ContinousFunctionalAC
 
 include("WNN/PG/ContinousRegularizedAC.jl")
 export ContinousRegularizedAC
@@ -104,6 +104,7 @@ const agent_table = Dict{Symbol,Type{<:AbstractAgent}}(
     :BinaryRegularizedAC => BinaryRegularizedAC,
     :BinaryAdaptiveAC => BinaryAdaptiveAC,
     :ContinousFunctionalPG => ContinousFunctionalPG,
+    :ContinousFunctionalAC => ContinousFunctionalAC,
     # :ContinousFunctionalAC => ContinousFunctionalAC,
     :ContinousRegularizedAC => ContinousRegularizedAC,
     # :AltContinousFunctionalAC => AltContinousFunctionalAC,

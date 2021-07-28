@@ -23,6 +23,7 @@ export GymCartPoleV1,
     GymAcrobot,
     GymBreakoutRAM,
     GymInvertedPendulum,
+    GymHopperV2,
     GymCartPoleBulletV1,
     GymReacherBulletV0,
     GymHopperBulletV0,
@@ -107,7 +108,7 @@ struct GymMountainCarDiscrete <: AbstractGymEnvironment{Vector{Float64},Int}
 end
 
 # TODO: Validate
-GymMountainCarDiscrete(; steps200) = GymMountainCarDiscrete(steps)
+GymMountainCarDiscrete(; steps=200) = GymMountainCarDiscrete(steps)
 
 observation_type(::GymMountainCarDiscrete) = Vector{Float64}
 observation_extrema(::GymMountainCarDiscrete) = ([-1.2, -0.07], [0.6, 0.07])
@@ -123,6 +124,39 @@ function step!(env::GymMountainCarDiscrete, action::Int)
     
     return reward, obs, done
 end
+
+# ------------------------- MontainCar (Continuous) -------------------------- #
+struct GymMountainCarContinuous <: AbstractGymEnvironment{SizedVector{2,Float64},SVector{1,Float64}}
+    env::PyObject
+    
+    function GymMountainCarContinuous()
+        env = gym.make("MountainCarContinuous-v0")
+        env._max_episode_steps = 999
+
+        new(env)
+    end
+end
+
+# TODO: Validate
+# GymMountainCarContinuous() = GymMountainCarDiscrete(steps)
+
+observation_type(::Type{GymMountainCarContinuous}) = SizedVector{2,Float64}
+observation_extrema(::Type{GymMountainCarContinuous}) = 
+    (SVector(-1.2, -0.07), SVector(0.6, 0.07))
+observation_length(::Type{GymMountainCarContinuous}) = 2
+action_type(::Type{GymMountainCarContinuous}) = SVector{1,Float64}
+# action_set(::GymMountainCarContinuous) = SA[0,1,2]
+
+function step!(env::GymMountainCarContinuous, action::SVector{1,Float64})
+    # (action != 0 && action != 1 && action != 2) &&
+    #     throw(DomainError(action, "Invalid action"))
+    
+    obs, reward, done, _ = env.env.step(clamp.(action, -1.0, 1.0))
+    
+    return Float64(reward), SizedVector{2}(obs), done
+end
+
+reset!(env::GymMountainCarContinuous) = 0.0, SizedVector{2}(env.env.reset()), false
 
 # --------------------------------- Acrobot ---------------------------------- #
 struct GymAcrobot <: AbstractGymEnvironment{Vector{Float64},Int}
@@ -189,6 +223,33 @@ observation_extrema(::GymInvertedPendulum) =
 observation_length(::GymInvertedPendulum) = 4
 action_type(::GymInvertedPendulum) = Float64
 action_set(::GymInvertedPendulum) = -3.0:1:3.0
+
+# -------------------------------- Hopper-v2 --------------------------------- #
+struct GymHopperV2 <: AbstractGymEnvironment{SizedVector{11,Float32},SVector{3,Float32}}
+    env::PyObject
+    
+    function GymHopperV2()
+        env = gym.make("Hopper-v2")
+
+        new(env)
+    end
+end
+
+observation_type(::Type{GymHopperV2}) = SizedVector{11,Float32}
+observation_extrema(::Type{GymHopperV2}) =
+    ((@SVector fill(-1.0f0, 11)), (@SVector fill(1.0f0, 11)))
+
+observation_length(::Type{GymHopperV2}) = 11
+action_type(::Type{GymHopperV2}) = SVector{3,Float32}
+
+function step!(env::GymHopperV2, action::SVector{3,Float32})
+    obs, reward, done, _ = env.env.step(clamp.(action, -1.0, 1.0))
+    
+    return Float64(reward), SizedVector{11}(obs), done
+end
+
+reset!(env::GymHopperV2) = 0.0, SizedVector{11}(env.env.reset()), false
+
 
 # ================================= pybullet ================================= #
 # ---------------------------- CartPoleBulletEnv-v1 -------------------------- #
