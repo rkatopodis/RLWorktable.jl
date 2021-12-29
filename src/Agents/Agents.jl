@@ -7,11 +7,11 @@ using Ramnet.Encoders
 using ..Environments: AbstractEnvironment, observation_type, observation_length, observation_extrema, action_type, action_set, action_length
 import ..reset!, ..update!, ..select_action
 
-export AbstractAgent, select_action!, observe!, update!, agent, encoding, make_agent
+export AbstractAgent, select_action, select_action!, observe!, update!, agent, encoding, make_agent
 
 # TODO: Make this type parametric. All agents should know the types of its observations,
 #       actions and encoder
-abstract type AbstractAgent{O <: AbstractVector,A} end
+abstract type AbstractAgent{O<:AbstractVector,A} end
 
 # I can make use of multiple dispatch here so that both observe_first! and observe!
 # are called observe!. The "observe_first!" equivalent only takes a observation while
@@ -38,7 +38,7 @@ function observe! end
 # TODO: Make a version that takes a destination vector
 # TODO: This implementation is wrong. It must take into account the epsilon prob.
 #       Refer to the Alberta MOOC exercise.
-function expected_q_value(agent::G, observation::O) where {O <: AbstractVector,A <: Real,G <: AbstractAgent{O,A}}
+function expected_q_value(agent::G, observation::O) where {O<:AbstractVector,A<:Real,G<:AbstractAgent{O,A}}
     values = similar(agent.actions, Float64)
     q_max = q_values!(agent, observation, values)
 
@@ -72,6 +72,9 @@ export FunctionalPG
 include("WNN/PG/ContinousFunctionalPG.jl")
 export ContinousFunctionalPG
 
+include("WNN/PG/DiscreteFunctionalPG.jl")
+export DiscreteFunctionalPG
+
 include("WNN/PG/FunctionalAC.jl")
 export FunctionalAC
 
@@ -80,6 +83,9 @@ export BinaryRegularizedAC
 
 include("WNN/PG/BinaryAdaptiveAC.jl")
 export BinaryAdaptiveAC
+
+include("WNN/PG/DiscreteFunctionalAC.jl")
+export DiscreteFunctionalAC
 
 include("WNN/PG/ContinousFunctionalAC.jl")
 export ContinousFunctionalAC
@@ -103,7 +109,9 @@ const agent_table = Dict{Symbol,Type{<:AbstractAgent}}(
     :FunctionalAC => FunctionalAC,
     :BinaryRegularizedAC => BinaryRegularizedAC,
     :BinaryAdaptiveAC => BinaryAdaptiveAC,
+    :DiscreteFunctionalAC => DiscreteFunctionalAC,
     :ContinousFunctionalPG => ContinousFunctionalPG,
+    :DiscreteFunctionalPG => DiscreteFunctionalPG,
     :ContinousFunctionalAC => ContinousFunctionalAC,
     # :ContinousFunctionalAC => ContinousFunctionalAC,
     :ContinousRegularizedAC => ContinousRegularizedAC,
@@ -120,7 +128,7 @@ function encoding(name::String, minimum, maximum, resolution)
     encoding_table[Symbol(name)](eltype(minimum), minimum, maximum, resolution)
 end
 
-function agent(name::String, ::Type{O}, ::Type{A}, actions, obs_size, encoder::E; kargs...) where {O,A,E <: AbstractEncoder}
+function agent(name::String, ::Type{O}, ::Type{A}, actions, obs_size, encoder::E; kargs...) where {O,A,E<:AbstractEncoder}
     agent_table[Symbol(name)]{O,A,E}(actions, obs_size, encoder; kargs...)
 end
 
@@ -133,21 +141,49 @@ function agent(agent_spec::Dict{Symbol,Any}, env::AbstractEnvironment)
     )
 
     agent(
-       agent_spec[:name],
-       observation_type(env),
-       action_type(env),
-       action_set(env),
-       observation_length(env),
-       enc;
-       agent_spec[:args]...
+        agent_spec[:name],
+        observation_type(env),
+        action_type(env),
+        action_set(env),
+        observation_length(env),
+        enc;
+        agent_spec[:args]...
     )
 end
 
-function make_agent(env_type::Type{<:AbstractEnvironment}, agentspec::Dict{Symbol,Any}; seed::Union{Nothing,UInt}=nothing)
+function make_agent(env_type::Type{<:AbstractEnvironment}, agentspec::Dict{Symbol,Any}; seed::Union{Nothing,UInt} = nothing)
     encoder_name = agentspec[:encoding][:name] |> Symbol
     encoder_resolution = agentspec[:encoding][:resolution]
 
-    enc = encoding_table[encoder_name](observation_extrema(env_type)..., encoder_resolution)
+    min, max = observation_extrema(env_type)
+
+    if haskey(agentspec[:encoding], :min)
+        spec_min = agentspec[:encoding][:min]
+
+        if spec_min isa Real # Scalar?
+            min = similar(min)
+            fill!(min, spec_min)
+        else
+            # Should check if spec_min is the right shape and type. Raise an
+            # exception if not
+            min = spec_min
+        end
+    end
+
+    if haskey(agentspec[:encoding], :max)
+        spec_max = agentspec[:encoding][:max]
+
+        if spec_max isa Real # Scalar?
+            max = similar(max)
+            fill!(max, spec_max)
+        else
+            # Should check if spec_max is the right shape and type. Raise an
+            # exception if not
+            max = spec_max
+        end
+    end
+
+    enc = encoding_table[encoder_name](min, max, encoder_resolution)
 
     agent_name = agentspec[:name] |> Symbol
 

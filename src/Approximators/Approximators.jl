@@ -15,6 +15,9 @@ export RegularizedBinaryPolicy
 include("PolicyApproximators/AdaptiveBinaryPolicy.jl")
 export AdaptiveBinaryPolicy
 
+include("PolicyApproximators/DiscreteActionPolicy.jl")
+export DiscreteActionPolicy
+
 include("PolicyApproximators/ContinousActionPolicy.jl")
 export ContinousActionPolicy
 

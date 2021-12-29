@@ -120,17 +120,21 @@ function update!(agent::ContinousFunctionalAC)
 end
 
 function reset!(agent::ContinousFunctionalAC; seed::Union{Nothing,UInt}=nothing)
-    if !isnothing(seed)
-        if seed ≥ 0
-            seed!(agent.rng, seed)
-        else
-            throw(DomainError(seed, "Seed must be non-negative"))
-        end
-    end
+    # if !isnothing(seed)
+    #     if seed ≥ 0
+    #         seed!(agent.rng, seed)
+    #     else
+    #         throw(DomainError(seed, "Seed must be non-negative"))
+    #     end
+    # end
     
     reset!(agent.actor)
     Ramnet.reset!(agent.critic)
     reset!(agent.buffer)
+
+    agent.observation = nothing
+    agent.action = nothing
+    agent.done = false
 
     nothing
 end

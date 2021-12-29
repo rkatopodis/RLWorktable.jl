@@ -48,7 +48,7 @@ function average_series(returns::AbstractMatrix; bs=1000, ci=0.95, window=5)
 
     m = bs_mean[:, 1]
     lo = abs.(m - bs_mean[:, 2])
-    hi = abs.(m - bs_mean[:, 2])
+    hi = abs.(m - bs_mean[:, 3])
 
     return m, lo, hi
 end
@@ -105,7 +105,7 @@ function curves(trials...; window=5)
 
         m = bs_mean[:, 1]
         lo = abs.(m - bs_mean[:, 2])
-        hi = abs.(m - bs_mean[:, 2])
+        hi = abs.(m - bs_mean[:, 3])
 
         plot!(m, ribbon=(lo, hi), label=trial.name)
     end

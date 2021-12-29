@@ -4,14 +4,14 @@ using Ramnet.Models.AltDiscriminators:RegressionDiscriminator
 using StaticArrays
 using Random
 
-using ..Approximators:BinaryActionPolicy
+using ..Approximators:DiscreteActionPolicy
 using ..Buffers: MultiStepDynamicBuffer, add!
 
 
-mutable struct FunctionalAC{OS,T <: Real,O <: StaticArray{Tuple{OS},T,1},E <: AbstractEncoder{T}} <: AbstractAgent{O,Int}
+mutable struct DiscreteFunctionalAC{OS,AS,T <: Real,O <: StaticArray{Tuple{OS},T,1},E <: AbstractEncoder{T}} <: AbstractAgent{O,Int}
     steps::Int
     γ::Float64
-    actor::BinaryActionPolicy{OS,T,O,E}
+    actor::DiscreteActionPolicy{OS,AS,T,O,E}
     critic::RegressionDiscriminator{1}
     buffer::MultiStepDynamicBuffer{O,Int}
     observation::Union{Nothing,O}
@@ -20,26 +20,26 @@ mutable struct FunctionalAC{OS,T <: Real,O <: StaticArray{Tuple{OS},T,1},E <: Ab
     rng::MersenneTwister # Is this even used?
 end
 
-function FunctionalAC(::Type{O}, steps, n, start_learning_rate, end_learning_rate, learning_rate_decay, epochs, discount, forgetting_factor, encoder::E; seed::Union{Nothing,UInt}=nothing) where {OS,T <: Real,O <: StaticArray{Tuple{OS},T,1},E <: AbstractEncoder{T}}
+function DiscreteFunctionalAC{AS}(::Type{O}, steps, n, start_learning_rate, end_learning_rate, learning_rate_decay, epochs, discount, forgetting_factor, encoder::E; seed::Union{Nothing,UInt}=nothing) where {OS,AS,T <: Real,O <: StaticArray{Tuple{OS},T,1},E <: AbstractEncoder{T}}
     !isnothing(seed) && seed < 0 && throw(DomainError(seed, "Seed must be non-negative"))
     rng = isnothing(seed) ? MersenneTwister() : MersenneTwister(seed)
 
     n < 1 && throw(DomainError(n, "Tuple size must be at least 1"))
 
-    actor = BinaryActionPolicy(O, n, encoder; start_learning_rate, end_learning_rate, learning_rate_decay, epochs, partitioner=:uniform_random, seed)
+    actor = DiscreteActionPolicy{AS}(O, n, encoder; start_learning_rate, end_learning_rate, learning_rate_decay, epochs, partitioner=:uniform_random, seed)
     critic = RegressionDiscriminator{1}(OS, 32, encoder; seed, γ=forgetting_factor)
 
     buffer = MultiStepDynamicBuffer{O,Int}()
 
-    FunctionalAC{OS,T,O,E}(steps, discount, actor, critic, buffer, nothing, false, nothing, rng)
+    DiscreteFunctionalAC{OS,AS,T,O,E}(steps, discount, actor, critic, buffer, nothing, false, nothing, rng)
 end
 
-function FunctionalAC(
-  env, encoder::E; steps, tuple_size, start_learning_rate, end_learning_rate, learning_rate_decay, epochs=1, discount=1.0, forgetting_factor=1, seed=nothing) where {T <: Real,E <: AbstractEncoder{T}}
-  FunctionalAC(observation_type(env), steps, tuple_size, start_learning_rate, end_learning_rate, learning_rate_decay, epochs, discount, forgetting_factor, encoder; seed)
+function DiscreteFunctionalAC(
+  env, encoder::E; steps, tuple_size, start_learning_rate, end_learning_rate, learning_rate_decay, epochs=1, discount=1.0, forgetting_factor=1.0, seed=nothing) where {T <: Real,E <: AbstractEncoder{T}}
+  DiscreteFunctionalAC{length(action_set(env))}(observation_type(env), steps, tuple_size, start_learning_rate, end_learning_rate, learning_rate_decay, epochs, discount, forgetting_factor, encoder; seed)
 end
 
-function observe!(agent::FunctionalAC{OS,T,O,E}, observation::O) where {OS,T <: Real,O <: StaticArray{Tuple{OS},T,1},E <: AbstractEncoder{T}}
+function observe!(agent::DiscreteFunctionalAC{OS,AS,T,O,E}, observation::O) where {OS,AS,T <: Real,O <: StaticArray{Tuple{OS},T,1},E <: AbstractEncoder{T}}
   agent.observation = observation
   agent.done = false
   agent.action = _select_action(agent, observation)
@@ -49,7 +49,7 @@ end
 
 # TODO: All observe! methods are the same for all agents. Generalize.
 # TODO: This method does not need to take in the action
-function observe!(agent::FunctionalAC{OS,T,O,E}, action::Int, reward::Float64, observation::O, done::Bool) where {OS,T <: Real,O <: StaticArray{Tuple{OS},T,1},E <: AbstractEncoder{T}}
+function observe!(agent::DiscreteFunctionalAC{OS,AS,T,O,E}, action::Int, reward::Float64, observation::O, done::Bool) where {OS,AS,T <: Real,O <: StaticArray{Tuple{OS},T,1},E <: AbstractEncoder{T}}
     add!(agent.buffer, agent.observation, agent.action, reward)
 
     if !done
@@ -61,11 +61,11 @@ function observe!(agent::FunctionalAC{OS,T,O,E}, action::Int, reward::Float64, o
     nothing
 end
 
-function _select_action(agent::FunctionalAC{OS,T,O,E}, observation::O) where {OS,T <: Real,O <: StaticArray{Tuple{OS},T,1},E <: AbstractEncoder{T}}
+function _select_action(agent::DiscreteFunctionalAC{OS,AS,T,O,E}, observation::O) where {OS,AS,T <: Real,O <: StaticArray{Tuple{OS},T,1},E <: AbstractEncoder{T}}
   return select_action(agent.actor, observation)
 end
 
-function select_action!(agent::FunctionalAC{OS,T,O,E}, observation::O) where {OS,T,O,E}
+function select_action!(agent::DiscreteFunctionalAC{OS,AS,T,O,E}, observation::O) where {OS,AS,T,O,E}
   if !isnothing(agent.action)
       return agent.action
   end
@@ -73,7 +73,7 @@ function select_action!(agent::FunctionalAC{OS,T,O,E}, observation::O) where {OS
   return _select_action(agent, observation)
 end
 
-function update!(agent::FunctionalAC)
+function update!(agent::DiscreteFunctionalAC)
   if agent.done
       G = 0.0
       for transition in Iterators.reverse(agent.buffer)
@@ -102,7 +102,7 @@ function update!(agent::FunctionalAC)
   nothing
 end
 
-function reset!(agent::FunctionalAC; seed::Union{Nothing,UInt}=nothing)
+function reset!(agent::DiscreteFunctionalAC; seed::Union{Nothing,UInt}=nothing)
   if !isnothing(seed)
       if seed ≥ 0
           Random.seed!(agent.rng, seed)
