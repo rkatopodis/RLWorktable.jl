@@ -51,8 +51,7 @@ function update!(p::DiscreteActionPolicy{OS,AS,T,O,E}, observation::O, action::I
     return nothing
 end
 
-function select_action(p::DiscreteActionPolicy{OS,AS,T,O,E}, observation::O)
-    deterministic::Bool = false where {OS,AS,T,O,E}
+function select_action(p::DiscreteActionPolicy{OS,AS,T,O,E}, observation::O; deterministic::Bool = false) where {OS,AS,T,O,E}
     if deterministic
         return mode(p, o)
     end
