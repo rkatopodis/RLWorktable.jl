@@ -71,8 +71,8 @@ function observe!(agent::DiscreteFunctionalPG{OS,AS,T,O,E}, action::Int, reward:
   nothing
 end
 
-function select_action(agent::DiscreteFunctionalPG{OS,AS,T,O,E}, observation::O) where {OS,AS,T<:Real,O<:StaticArray{Tuple{OS},T,1},E<:AbstractEncoder{T}}
-  return select_action(agent.policy, observation)
+function select_action(agent::DiscreteFunctionalPG{OS,AS,T,O,E}, observation::O; deterministic::Bool = false) where {OS,AS,T<:Real,O<:StaticArray{Tuple{OS},T,1},E<:AbstractEncoder{T}}
+  return select_action(agent.policy, observation; deterministic)
 end
 
 function select_action!(agent::DiscreteFunctionalPG{OS,AS,T,O,E}, observation::O) where {OS,AS,T<:Real,O<:StaticArray{Tuple{OS},T,1},E<:AbstractEncoder{T}}

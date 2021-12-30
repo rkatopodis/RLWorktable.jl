@@ -40,7 +40,7 @@ function probability(p::DiscreteActionPolicy{OS,AS,T,O,E}, action::Int, observat
 end
 
 function mode(p::DiscreteActionPolicy{OS,AS,T,O,E}, observation::O) where {OS,AS,T,O,E}
-    nothing
+    return argmax(predict(p.f, observation)) - 1
 end
 
 function update!(p::DiscreteActionPolicy{OS,AS,T,O,E}, observation::O, action::Int, G) where {OS,AS,T,O,E}
@@ -51,7 +51,12 @@ function update!(p::DiscreteActionPolicy{OS,AS,T,O,E}, observation::O, action::I
     return nothing
 end
 
-function select_action(p::DiscreteActionPolicy{OS,AS,T,O,E}, observation::O) where {OS,AS,T,O,E}
+function select_action(p::DiscreteActionPolicy{OS,AS,T,O,E}, observation::O)
+    deterministic::Bool = false where {OS,AS,T,O,E}
+    if deterministic
+        return mode(p, o)
+    end
+
     cdf = cumsum(probabilities(p, observation))
     s = rand(p.rng)
 
