@@ -53,7 +53,7 @@ end
 
 function select_action(p::DiscreteActionPolicy{OS,AS,T,O,E}, observation::O; deterministic::Bool = false) where {OS,AS,T,O,E}
     if deterministic
-        return mode(p, o)
+        return mode(p, observation)
     end
 
     cdf = cumsum(probabilities(p, observation))
